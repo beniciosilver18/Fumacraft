@@ -68,9 +68,9 @@ details{background:#fff;border:1px solid var(--b);border-radius:14px;padding:12p
 /* ===== CONFIG ===== */
 const SB_URL='https://hqjmkdfbwdtxgifkenew.supabase.co';
 const SB_KEY='sb_publishable_8vh5KLV4daRsTSJNsL-rxQ_psAAMk0O';
-const CHECKOUT_URL='https://fumacraft.lemonsqueezy.com/checkout/buy/62bcfc9c-c45b-4f99-aed1-9458e95aa3e1';
+const PAGAR_URL='';const PAGAR_PRICE='640 MT';const CHECKOUT_URL_LS='https://fumacraft.lemonsqueezy.com/checkout/buy/62bcfc9c-c45b-4f99-aed1-9458e95aa3e1';
 const TRIAL_DAYS=7, PRICE='US$9,99';
-const RESERVED=['','admin','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
+const RESERVED=['','admin','explorar','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
 const CUR={BRL:'pt-BR',EUR:'pt-PT',AOA:'pt-AO',MZN:'pt-MZ',CVE:'pt-CV',USD:'en-US',GBP:'en-GB',NGN:'en-NG',KES:'en-KE',ZAR:'en-ZA',GHS:'en-GH'};
 /* ===== HELPERS ===== */
 const sb=supabase.createClient(SB_URL,SB_KEY);
@@ -80,7 +80,9 @@ const fmt=(v,c)=>{try{return new Intl.NumberFormat(CUR[c]||'pt-PT',{style:'curre
 const slugify=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
 const toast=m=>{const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)};
 const daysLeft=s=>Math.max(0,TRIAL_DAYS-Math.floor((Date.now()-new Date(s.trial_started))/864e5));
-const isLive=s=>s.plan==='active'||daysLeft(s)>0;
+const paidLeft=s=>s.paid_until?Math.max(0,Math.ceil((new Date(s.paid_until)-Date.now())/864e5)):0;
+const isPaid=s=>s.plan==='active'&&paidLeft(s)>0;
+const isLive=s=>isPaid(s)||daysLeft(s)>0;
 const storeUrl=s=>location.origin+'/'+s.slug;
 function go(p){history.pushState({},'',p);route()}
 document.addEventListener('click',e=>{const a=e.target.closest('a[data-l]');if(a){e.preventDefault();go(a.getAttribute('href'))}});
@@ -104,7 +106,7 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
  $('#hb').classList.toggle('hide',isStore);if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
- if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();
+ if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();if(p==='explorar')return explore();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
 
@@ -112,6 +114,7 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
 function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minutos';app.innerHTML=`
 <section class="hero"><span class="pill">✨ ${TRIAL_DAYS} dias grátis · sem cartão</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
 <p>Fotos dos produtos, carrinho e pedidos que chegam organizados no seu WhatsApp, com itens, total, nome e endereço do cliente.</p>
+<a class="btn y w" href="/explorar" data-l style="max-width:460px;margin:0 auto 14px;font-size:20px;padding:20px;display:flex">🔎 Explorar lojas e produtos</a>
 <div class="row" style="justify-content:center;max-width:460px;margin:0 auto"><a class="btn" href="/entrar" data-l>Criar a minha loja</a><a class="btn o" href="/exemplo" data-l>Ver exemplo</a></div></section>
 <div class="grid steps">
 <div class="card"><b class="n">1</b><h3>Crie a loja</h3><p class="muted">Nome, logo, capa e o seu WhatsApp. Escolha a sua moeda: real, euro, kwanza, metical, dólar…</p></div>
@@ -152,16 +155,21 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
  if(!s)return storeForm(null);
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).order('sort').order('created_at');
  const left=daysLeft(s),url=storeUrl(s);
- const co=CHECKOUT_URL?CHECKOUT_URL+(CHECKOUT_URL.includes('?')?'&':'?')+'checkout[email]='+encodeURIComponent(me.email)+'&checkout[custom][store_id]='+s.id:'';
- app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1>${me.email==='beniciosilver18@gmail.com'?'<a class="btn s" href="/admin" data-l style="flex:0">Admin</a>':''}<button class="btn s r" id="lo" style="flex:0">Sair</button></div>
-${s.plan==='active'?'<div class="banner g">✅ Plano ativo. A sua loja está online.</div>':`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O teste terminou e a sua loja está em pausa para os clientes.'} ${co?`<a class="btn s y" href="${co}" target="_blank" rel="noopener">Assinar ${PRICE}/mês</a>`:''}</div>`}
+ const co=PAGAR_URL;const pl=paidLeft(s);
+ app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1><button class="btn s r" id="lo" style="flex:0">Sair</button></div>
+${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5&&co?`<a class="btn s y" href="${co}" target="_blank" rel="noopener">Renovar ${PAGAR_PRICE}</a>`:''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'}<br>${co?`<a class="btn s y" style="margin-top:8px" href="${co}" target="_blank" rel="noopener">Pagar ${PAGAR_PRICE} / 30 dias</a><div class="small muted" style="margin-top:6px">M-Pesa, eMola${''}. Use o email <b>${esc(me.email)}</b> no pagamento. A loja é ativada em até 24h.</div>`:''}</div>`}
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
 <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
 ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px">`:`<div class="thumb ph" style="width:52px;font-size:22px;flex:0 0 52px">${esc(p.name.trim()[0].toUpperCase())}</div>`}
 <div style="min-width:0"><b>${esc(p.name)}</b><br><span class="small muted">${fmt(p.price,s.currency)}</span> <span class="badge ${p.active?'on':''}">${p.active?'Visível':'Oculto'}</span></div></div>
 <button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
+<div class="card" style="margin-top:14px"><h3>🧾 Pedidos</h3><p class="small muted" style="margin-top:0">Quando o cliente chegar, peça o código do pedido ou leia o QR.</p>
+<div class="row" style="flex-wrap:nowrap"><input id="oc" placeholder="Código, ex.: K7M2QX" style="text-transform:uppercase" maxlength="6"><button class="btn s" id="ov" style="flex:0 0 auto">Ver</button></div>
+<button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="ol" style="margin-top:10px"></div></div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
+ $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
+ loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
  $('#lo').onclick=async()=>{await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
@@ -208,18 +216,18 @@ function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',categ
 async function admin(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
  const r=await sb.rpc('admin_stores');if(r.error){app.innerHTML='<div class="card" style="text-align:center;margin-top:30px"><h2>Acesso restrito</h2><p class="muted">Esta área é só para o administrador.</p></div>';return}
  const st=r.data||[],u=(await sb.rpc('admin_users_count')).data||0;
- const paid=st.filter(s=>s.plan==='active'),trial=st.filter(s=>s.plan!=='active'&&daysLeft(s)>0),exp=st.filter(s=>s.plan!=='active'&&daysLeft(s)===0);
+ const paid=st.filter(isPaid),trial=st.filter(s=>!isPaid(s)&&daysLeft(s)>0),exp=st.filter(s=>!isPaid(s)&&daysLeft(s)===0);
  const k=(t,v,c='')=>`<div class="card" style="text-align:center"><div class="muted small">${t}</div><div style="font-size:28px;font-weight:900;${c}">${v}</div></div>`;
- const draw=(q='',f='all')=>{const list=st.filter(s=>(f==='all'||(f==='paid'&&s.plan==='active')||(f==='trial'&&trial.includes(s))||(f==='exp'&&exp.includes(s)))&&(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
+ const draw=(q='',f='all')=>{const list=st.filter(s=>(f==='all'||(f==='paid'&&isPaid(s))||(f==='trial'&&trial.includes(s))||(f==='exp'&&exp.includes(s)))&&(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
  app.innerHTML=`<h1 style="margin:6px 0">Painel Admin</h1><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
-${k('Receita mensal',fmt(paid.length*9.99,'USD'),'color:var(--g)')}${k('Assinantes',paid.length)}${k('Em teste',trial.length)}${k('Teste terminado',exp.length,'color:#b3261e')}${k('Lojas',st.length)}${k('Contas',u)}</div>
-<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px">${[['all','Todas'],['paid','Assinantes'],['trial','Em teste'],['exp','Teste terminado']].map(([v,t])=>`<option value="${v}" ${v===f?'selected':''}>${t}</option>`).join('')}</select></div>
-${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge ${s.plan==='active'?'on':''}">${s.plan==='active'?'Assinante':d>0?'Teste: '+d+'d':'Teste terminado'}</span><br>
+${k('Receita mensal',fmt(paid.length*640,'MZN'),'color:var(--g)')}${k('Assinantes',paid.length)}${k('Em teste',trial.length)}${k('Em pausa',exp.length,'color:#b3261e')}${k('Lojas',st.length)}${k('Contas',u)}</div>
+<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px">${[['all','Todas'],['paid','Assinantes'],['trial','Em teste'],['exp','Em pausa']].map(([v,t])=>`<option value="${v}" ${v===f?'selected':''}>${t}</option>`).join('')}</select></div>
+${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge ${s.plan==='active'?'on':''}">${isPaid(s)?'Pago: '+paidLeft(s)+'d':d>0?'Teste: '+d+'d':'Em pausa'}</span><br>
 <span class="small muted">${esc(s.email)} · ${s.products} produtos · ${s.currency} · desde ${new Date(s.created_at).toLocaleDateString('pt-PT')}</span></div></div>
 <div class="row" style="margin-top:10px"><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>
-${s.plan==='active'?`<button class="btn s r" data-pl="trial" data-id="${s.id}">Desativar</button>`:`<button class="btn s" data-pl="active" data-id="${s.id}">Ativar plano</button>`}</div></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
+<button class="btn s" data-pl="30" data-id="${s.id}">+30 dias</button>${isPaid(s)?`<button class="btn s r" data-pl="0" data-id="${s.id}">Desativar</button>`:''}</div></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
  const aq=$('#aq');aq.oninput=()=>{const pos=aq.selectionStart;draw(aq.value,$('#af').value);const n=$('#aq');n.focus();n.setSelectionRange(pos,pos)};$('#af').onchange=()=>draw($('#aq').value,$('#af').value);
- app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_set_plan',{sid:b.dataset.id,p:b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});};
+ app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_add_days',{sid:b.dataset.id,d:+b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});};
  draw();}
 
 /* ===== STOREFRONT ===== */
@@ -251,12 +259,12 @@ ${cats.length>1?`<div class="chips"><button class="chip ${cat?'':'on'}" data-c="
   app.querySelectorAll('[data-p]').forEach(b=>b.onclick=e=>{e.stopPropagation();cart[b.dataset.p]=(cart[b.dataset.p]||0)+1;draw()});
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(--cart[b.dataset.m]<=0)delete cart[b.dataset.m];draw()});
   app.querySelectorAll('[data-o]').forEach(c=>c.onclick=()=>detail(s.products.find(p=>p.id===c.dataset.o)));
-  const cb=$('#cb');if(cb)cb.onclick=()=>checkout(s,draw,key);};
+  const cb=$('#cb');if(cb)cb.onclick=()=>checkout(s,draw,key,demo);};
  const detail=p=>{const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${ph(p)}<h2 style="margin:12px 0 4px">${esc(p.name)}</h2><div class="price">${fmt(p.price,s.currency)}</div>${p.description?`<p class="muted">${esc(p.description)}</p>`:''}
 <div class="row" style="margin-top:14px"><button class="btn o" id="mc">Fechar</button><button class="btn" id="ma">Adicionar ao pedido</button></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#mc').onclick=()=>m.remove();m.querySelector('#ma').onclick=()=>{cart[p.id]=(cart[p.id]||0)+1;m.remove();draw();toast('Adicionado ao pedido')}};
  draw();}
-function checkout(s,back,key){const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0);const modes=[s.delivery&&'entrega',s.pickup&&'levantamento'].filter(Boolean);window.scrollTo(0,0);
+function checkout(s,back,key,demo){const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0);const modes=[s.delivery&&'entrega',s.pickup&&'levantamento'].filter(Boolean);window.scrollTo(0,0);
  app.innerHTML=`<button class="btn s o" id="b2">← Continuar a comprar</button><h1>O seu pedido</h1>
 <div class="card">${items.map(p=>`<div class="li"><span>${esc(p.name)}<br><span class="qty" style="margin-top:6px"><button data-m="${p.id}">−</button><b>${cart[p.id]}</b><button data-p="${p.id}">+</button></span></span><b>${fmt(p.price*cart[p.id],s.currency)}</b></div>`).join('')}
 <div class="li"><span>Subtotal</span><b>${fmt(sub,s.currency)}</b></div><div class="li" id="fr"></div><div class="li" style="border:0"><span style="font-size:18px"><b>Total</b></span><b id="tot" style="font-size:20px"></b></div></div>
@@ -268,14 +276,60 @@ ${modes.length>1?`<label>Como quer receber?</label><div class="tabs">${modes.map
  let md=modes[0];
  const upd=()=>{const del=md==='entrega',fee=del?(+s.delivery_fee||0):0;$('#aw').classList.toggle('hide',!del);$('#fr').innerHTML=`<span>${del?'Entrega':'Levantamento na loja'}</span><b>${fee?fmt(fee,s.currency):'Grátis'}</b>`;$('#tot').textContent=fmt(sub+fee,s.currency);return fee};upd();
  app.querySelectorAll('[data-md]').forEach(b=>b.onclick=()=>{md=b.dataset.md;app.querySelectorAll('[data-md]').forEach(x=>x.classList.toggle('on',x===b));upd()});
- app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{cart[b.dataset.p]++;localStorage.setItem(key,JSON.stringify(cart));checkout(s,back,key)});
+ app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{cart[b.dataset.p]++;localStorage.setItem(key,JSON.stringify(cart));checkout(s,back,key,demo)});
  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(--cart[b.dataset.m]<=0)delete cart[b.dataset.m];localStorage.setItem(key,JSON.stringify(cart));Object.keys(cart).length?checkout(s,back,key):back()});
  $('#b2').onclick=back;
- $('#go').onclick=()=>{const name=$('#cn').value.trim(),ad=$('#ad').value.trim(),ob=$('#ob').value.trim();if(!name)return toast('Escreva o seu nome');if(md==='entrega'&&!ad)return toast('Escreva o endereço');
+ $('#go').onclick=async()=>{const name=$('#cn').value.trim(),ad=$('#ad').value.trim(),ob=$('#ob').value.trim();if(!name)return toast('Escreva o seu nome');if(md==='entrega'&&!ad)return toast('Escreva o endereço');
   localStorage.setItem('fc_name',name);if(ad)localStorage.setItem('fc_addr',ad);const fee=upd();
   const L=[`🛍️ *Novo pedido — ${s.name}*`,'',...items.map(p=>`• ${cart[p.id]}× ${p.name} — ${fmt(p.price*cart[p.id],s.currency)}`),'',`Subtotal: ${fmt(sub,s.currency)}`,md==='entrega'?`🛵 Entrega: ${fee?fmt(fee,s.currency):'grátis'}`:'🏪 Levantamento na loja',`*Total: ${fmt(sub+fee,s.currency)}*`,'',`👤 ${name}`];
   if(md==='entrega')L.push(`📍 ${ad}`);if(ob)L.push(`📝 ${ob}`);L.push('','_Pedido feito na loja Fumacraft_');
-  cart={};localStorage.removeItem(key);location.href='https://wa.me/'+s.whatsapp+'?text='+encodeURIComponent(L.join('\n'))};}
+  const g=$('#go');g.disabled=true;g.textContent='A criar o pedido…';
+  let code;if(demo||s.id==='demo'){code=Math.random().toString(36).slice(2,8).toUpperCase()}else{const r=await sb.rpc('create_order',{sid:s.id,its:items.map(p=>({id:p.id,qty:cart[p.id]})),cname:name,cmode:md||'levantamento',caddr:ad,cnote:ob});if(r.error||!r.data?.[0]){g.disabled=false;g.textContent='💬 Enviar pedido pelo WhatsApp';return toast('Não foi possível criar o pedido. Tente de novo.')}code=r.data[0].code}
+  L.splice(1,0,`🔑 *Código do pedido: ${code}*`);
+  const mine=JSON.parse(localStorage.getItem('fc_orders')||'[]');mine.unshift({code,store:s.name,slug:s.slug,total:fmt(sub+fee,s.currency),at:Date.now()});localStorage.setItem('fc_orders',JSON.stringify(mine.slice(0,20)));
+  cart={};localStorage.removeItem(key);const wa='https://wa.me/'+s.whatsapp+'?text='+encodeURIComponent(L.join('\n'));window.scrollTo(0,0);
+  app.innerHTML=`<div class="card" style="text-align:center;margin-top:10px"><div style="font-size:40px">✅</div><h2 style="margin:6px 0">Pedido criado!</h2><p class="muted" style="margin:0">O seu código do pedido é</p>
+<div style="font-size:42px;font-weight:800;letter-spacing:6px;margin:8px 0;color:var(--g)">${code}</div>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(location.origin+'/painel?pedido='+code)}" width="220" height="220" alt="QR do pedido" style="border-radius:12px;border:1px solid #eee">
+<p class="small muted">Guarde este código. Ao chegar à loja, diga o código ou mostre o QR e o vendedor vê logo o seu pedido.</p>
+<a class="btn w" href="${wa}" style="font-size:17px;padding:15px">💬 Enviar pedido pelo WhatsApp</a>
+<button class="btn o w" id="bk2" style="margin-top:10px">Voltar à loja</button></div>`;$('#bk2').onclick=back;location.href=wa};}
+
+/* ===== ORDERS (seller) ===== */
+const stLabel={novo:'🟡 Novo',pronto:'🔵 Pronto',entregue:'🟢 Entregue'};
+async function loadOrders(s){const el=$('#ol');if(!el)return;const {data}=await sb.from('orders').select('*').eq('store_id',s.id).order('created_at',{ascending:false}).limit(10);
+ el.innerHTML=(data||[]).map(o=>`<div class="li" data-oc="${o.code}" style="cursor:pointer"><span><b style="letter-spacing:2px">${o.code}</b> · ${esc(o.customer||'')}<br><span class="small muted">${new Date(o.created_at).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})} · ${stLabel[o.status]||o.status}</span></span><b>${fmt(o.total,s.currency)}</b></div>`).join('')||'<p class="small muted">Ainda não há pedidos.</p>';
+ el.querySelectorAll('[data-oc]').forEach(d=>d.onclick=()=>openOrder(s,d.dataset.oc));}
+async function openOrder(s,raw){let c=String(raw||'').trim();const m=c.match(/pedido=([A-Za-z0-9]+)/);if(m)c=m[1];c=c.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<4)return toast('Escreva o código do pedido');
+ const {data:o}=await sb.from('orders').select('*').eq('store_id',s.id).eq('code',c).maybeSingle();if(!o)return toast('Pedido '+c+' não encontrado');
+ const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet"><div class="small muted">Pedido</div><h2 style="margin:0 0 4px;letter-spacing:4px">${o.code}</h2><div>${stLabel[o.status]||o.status} · ${esc(o.customer||'')}</div>
+<div class="card" style="margin-top:10px">${o.items.map(i=>`<div class="li"><span>${i.qty}× ${esc(i.name)}</span><b>${fmt(i.price*i.qty,s.currency)}</b></div>`).join('')}
+<div class="li"><span>${o.mode==='entrega'?'🛵 Entrega':'🏪 Levantamento'}</span><b>${o.fee?fmt(o.fee,s.currency):'Grátis'}</b></div><div class="li" style="border:0"><b>Total</b><b>${fmt(o.total,s.currency)}</b></div></div>
+${o.address?`<p class="small">📍 ${esc(o.address)}</p>`:''}${o.note?`<p class="small">📝 ${esc(o.note)}</p>`:''}
+<div class="row" style="margin-top:12px">${o.status!=='entregue'?`<button class="btn" data-st="${o.status==='novo'?'pronto':'entregue'}">${o.status==='novo'?'Marcar pronto':'Marcar entregue'}</button>`:''}<button class="btn o" id="xc">Fechar</button></div></div>`;
+ document.body.appendChild(md);md.onclick=e=>{if(e.target===md)md.remove()};md.querySelector('#xc').onclick=()=>md.remove();
+ const b=md.querySelector('[data-st]');if(b)b.onclick=async()=>{b.disabled=true;const e=(await sb.from('orders').update({status:b.dataset.st}).eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Atualizado');loadOrders(s)};}
+function loadJsQR(){return window.jsQR?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
+async function scanQR(cb){const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet" style="text-align:center"><h3 style="margin-top:0">Aponte para o QR do cliente</h3><video playsinline muted style="width:100%;border-radius:12px;background:#000"></video><button class="btn o w" style="margin-top:10px">Fechar</button></div>`;document.body.appendChild(md);
+ const v=md.querySelector('video');let stream,on=true;const stop=()=>{on=false;stream&&stream.getTracks().forEach(t=>t.stop());md.remove()};md.querySelector('button').onclick=stop;
+ try{await loadJsQR();stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});v.srcObject=stream;await v.play()}catch(e){stop();return toast('Não foi possível abrir a câmara. Escreva o código.')}
+ const cv=document.createElement('canvas'),cx=cv.getContext('2d',{willReadFrequently:true});
+ const tick=()=>{if(!on)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height);if(r&&r.data){stop();return cb(r.data)}}requestAnimationFrame(tick)};tick();}
+
+/* ===== EXPLORE ===== */
+async function explore(){document.title='Explorar lojas · Fumacraft';app.innerHTML='<div class="spin"></div>';
+ const [{data:ss},{data:pp}]=await Promise.all([sb.from('stores').select('id,slug,name,description,logo_url,cover_url,currency,plan,trial_started,paid_until'),sb.from('products').select('id,name,price,photo_url,category,store_id').eq('active',true).limit(300)]);
+ const st=(ss||[]).filter(isLive),byId=Object.fromEntries(st.map(s=>[s.id,s]));const ps=(pp||[]).filter(p=>byId[p.store_id]);
+ const mine=JSON.parse(localStorage.getItem('fc_orders')||'[]');let q='';
+ const draw=()=>{const t=q.toLowerCase();const S=st.filter(s=>!t||(s.name+' '+(s.description||'')).toLowerCase().includes(t));const P=ps.filter(p=>!t||(p.name+' '+(p.category||'')).toLowerCase().includes(t));
+  $('#er').innerHTML=`<h2>Lojas (${S.length})</h2><div class="grid p">${S.map(s=>`<a class="card prod" href="/${esc(s.slug)}" data-l style="text-decoration:none;color:inherit">${s.cover_url?`<img class="thumb" src="${esc(s.cover_url)}" loading="lazy" alt="">`:s.logo_url?`<img class="thumb" src="${esc(s.logo_url)}" loading="lazy" alt="">`:`<div class="thumb ph" style="font-size:34px">${esc(s.name.trim()[0].toUpperCase())}</div>`}<h3>${esc(s.name)}</h3>${s.description?`<div class="small muted">${esc(s.description.slice(0,70))}</div>`:''}</a>`).join('')||'<p class="muted">Nenhuma loja encontrada.</p>'}</div>
+${t?`<h2>Produtos (${P.length})</h2><div class="grid p">${P.slice(0,60).map(p=>`<a class="card prod" href="/${esc(byId[p.store_id].slug)}" data-l style="text-decoration:none;color:inherit">${p.photo_url?`<img class="thumb" src="${esc(p.photo_url)}" loading="lazy" alt="">`:`<div class="thumb ph" style="font-size:34px">${esc(p.name.trim()[0].toUpperCase())}</div>`}<h3>${esc(p.name)}</h3><div class="price">${fmt(p.price,byId[p.store_id].currency)}</div><div class="small muted">${esc(byId[p.store_id].name)}</div></a>`).join('')||'<p class="muted">Nenhum produto encontrado.</p>'}</div>`:''}`;};
+ app.innerHTML=`<h1 style="margin:6px 0">🔎 Explorar</h1><p class="muted" style="margin-top:0">Encontre lojas e produtos perto de si e faça o pedido pelo WhatsApp.</p>
+<input id="eq" placeholder="O que procura? Ex.: bolo, sapatos, frango…" style="font-size:18px;padding:14px">
+${mine.length?`<details style="margin-top:12px"><summary>🔑 Os meus códigos de pedido (${mine.length})</summary>${mine.map(o=>`<div class="li"><span><b style="letter-spacing:2px">${esc(o.code)}</b> · ${esc(o.store)}</span><span>${esc(o.total)}</span></div>`).join('')}</details>`:''}
+<div id="er"></div>`;
+ const e=$('#eq');e.oninput=()=>{q=e.value;draw()};draw();}
+
 if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
 </script>
 </body>
