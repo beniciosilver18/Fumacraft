@@ -1,1 +1,1 @@
-{"name":"Fumacraft","short_name":"Fumacraft","start_url":"./","display":"standalone","background_color":"#ffffff","theme_color":"#0f7a4a","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{"name":"Fumacraft","short_name":"Fumacraft","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#0f7a4a","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
