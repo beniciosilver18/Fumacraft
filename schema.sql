@@ -162,3 +162,22 @@ begin
 end $$;
 drop trigger if exists orders_push on public.orders;
 create trigger orders_push after insert on public.orders for each row execute function public.notify_order();
+alter table public.stores add column if not exists order_retention_days int not null default 0;
+drop policy if exists orders_owner_del on public.orders;
+create policy orders_owner_del on public.orders for delete using (exists(select 1 from public.stores s where s.id=store_id and s.owner=auth.uid()));
+create or replace function public.admin_delete_store(sid uuid) returns void language plpgsql security definer set search_path=public as $$
+begin if not public.is_admin() then raise exception 'forbidden'; end if; delete from public.stores where id=sid; end $$;
+create or replace function public.admin_delete_user(sid uuid) returns void language plpgsql security definer set search_path=public, auth as $$
+declare uid uuid; begin if not public.is_admin() then raise exception 'forbidden'; end if;
+ select owner into uid from public.stores where id=sid; if uid is null then raise exception 'not found'; end if;
+ if (select email from auth.users where id=uid)='beniciosilver18@gmail.com' then raise exception 'Não pode apagar a conta admin'; end if;
+ delete from auth.users where id=uid; end $$;
+create or replace function public.admin_delete_orders(sid uuid, older_days int) returns int language plpgsql security definer set search_path=public as $$
+declare n int; begin if not public.is_admin() then raise exception 'forbidden'; end if;
+ delete from public.orders where store_id=sid and created_at < now() - make_interval(days=>older_days); get diagnostics n=row_count; return n; end $$;
+revoke all on function public.admin_delete_store(uuid) from anon; revoke all on function public.admin_delete_user(uuid) from anon; revoke all on function public.admin_delete_orders(uuid,int) from anon;
+create or replace function public.purge_old_orders() returns void language sql security definer set search_path=public as $$
+ delete from public.orders o using public.stores s where s.id=o.store_id and s.order_retention_days>0 and o.status='entregue' and o.created_at < now() - make_interval(days=>s.order_retention_days); $$;
+revoke all on function public.purge_old_orders() from anon, authenticated;
+create extension if not exists pg_cron;
+select cron.schedule('purge-old-orders','15 1 * * *','select public.purge_old_orders()');
