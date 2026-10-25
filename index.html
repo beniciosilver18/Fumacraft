@@ -46,7 +46,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--g);border-color:
 .slogo{width:84px;height:84px;border-radius:20px;object-fit:cover;border:4px solid #fff;background:#fff;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;font-size:38px;flex:0 0 auto}
 .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}.chip{border:1px solid var(--b);background:#fff;border-radius:999px;padding:7px 14px;white-space:nowrap;cursor:pointer;font-size:14px}.chip.on{background:var(--g);color:#fff;border-color:var(--g)}
 .steps .card b.n{display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--g);color:#fff;align-items:center;justify-content:center}
-.hide{display:none!important}footer{text-align:center;color:var(--m);padding:30px 10px 100px;font-size:13px}
+.hide{display:none!important}.g3{grid-template-columns:repeat(3,1fr)}@media(max-width:560px){.g3{grid-template-columns:repeat(2,1fr)}}.ph{background:linear-gradient(135deg,#e8f5ee,#cfeadb);color:#0f7a4a;font-weight:800}footer{text-align:center;color:var(--m);padding:30px 10px 100px;font-size:13px}
 .copy{word-break:break-all;background:var(--g2);padding:12px;border-radius:12px;font-weight:600}
 .up{display:flex;gap:12px;align-items:center}.up .pv{width:76px;height:76px;border-radius:14px;object-fit:cover;background:var(--g2);display:flex;align-items:center;justify-content:center;font-size:26px;flex:0 0 auto}
 .up.wide .pv{width:140px;height:76px}
@@ -70,13 +70,13 @@ const SB_URL='https://hqjmkdfbwdtxgifkenew.supabase.co';
 const SB_KEY='sb_publishable_8vh5KLV4daRsTSJNsL-rxQ_psAAMk0O';
 const CHECKOUT_URL='https://fumacraft.lemonsqueezy.com/checkout/buy/62bcfc9c-c45b-4f99-aed1-9458e95aa3e1';
 const TRIAL_DAYS=7, PRICE='US$9,99';
-const RESERVED=['','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
+const RESERVED=['','admin','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
 const CUR={BRL:'pt-BR',EUR:'pt-PT',AOA:'pt-AO',MZN:'pt-MZ',CVE:'pt-CV',USD:'en-US',GBP:'en-GB',NGN:'en-NG',KES:'en-KE',ZAR:'en-ZA',GHS:'en-GH'};
 /* ===== HELPERS ===== */
 const sb=supabase.createClient(SB_URL,SB_KEY);
 const $=s=>document.querySelector(s),app=$('#app');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const fmt=(v,c)=>{try{return new Intl.NumberFormat(CUR[c]||'pt-PT',{style:'currency',currency:c}).format(v)}catch(e){return c+' '+Number(v).toFixed(2)}};
+const fmt=(v,c)=>{try{return new Intl.NumberFormat(CUR[c]||'pt-PT',{style:'currency',currency:c,useGrouping:'always'}).format(v)}catch(e){return c+' '+Number(v).toFixed(2)}};
 const slugify=s=>s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40);
 const toast=m=>{const t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);setTimeout(()=>t.remove(),2400)};
 const daysLeft=s=>Math.max(0,TRIAL_DAYS-Math.floor((Date.now()-new Date(s.trial_started))/864e5));
@@ -93,18 +93,18 @@ async function upload(file,uid,kind){const blob=await compress(file,kind==='cove
  const {error}=await sb.storage.from('images').upload(path,blob,{contentType:'image/jpeg',upsert:true});if(error)throw error;
  return sb.storage.from('images').getPublicUrl(path).data.publicUrl;}
 function picker(id,label,url,wide,emoji='📷'){return `<label>${label}</label><div class="up ${wide?'wide':''}">${url?`<img class="pv" id="${id}_pv" src="${esc(url)}">`:`<div class="pv" id="${id}_pv">${emoji}</div>`}
-<div><input type="file" id="${id}" accept="image/*" class="hide"><button type="button" class="btn s o" onclick="document.getElementById('${id}').click()">${url?'Trocar foto':'Carregar foto'}</button><div class="small muted">Da galeria ou câmara</div></div></div>`}
+<div><label class="btn s o" style="position:relative;overflow:hidden;margin:0">${url?'Trocar foto':'Carregar foto'}<input type="file" id="${id}" accept="image/*" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"></label><div class="small muted" id="${id}_st">Da galeria ou câmara</div></div></div>`}
 function bindPicker(id,onfile){const i=$('#'+id);if(!i)return;i.onchange=()=>{const f=i.files[0];if(!f)return;const pv=$('#'+id+'_pv');const u=URL.createObjectURL(f);
- if(pv.tagName==='IMG')pv.src=u;else{const im=document.createElement('img');im.className='pv';im.id=id+'_pv';im.src=u;pv.replaceWith(im)}onfile(f)}}
+ if(pv.tagName==='IMG')pv.src=u;else{const im=document.createElement('img');im.className='pv';im.id=id+'_pv';im.src=u;pv.replaceWith(im)}onfile(f);const st=document.getElementById(id+'_st');if(st)st.textContent='✓ Foto escolhida, carregue em Guardar'}}
 let me=null;sb.auth.getSession().then(r=>{me=r.data.session?.user||null;route()});
 sb.auth.onAuthStateChange((_e,s)=>{me=s?.user||null});
 
 /* ===== ROUTER ===== */
-function route(){const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,''));window.scrollTo(0,0);
+function route(){document.querySelector('.logo').lastChild.textContent='Fumacraft';const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,''));window.scrollTo(0,0);
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
  $('#hb').classList.toggle('hide',isStore);if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
- if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();
+ if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
 
@@ -116,11 +116,11 @@ function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minut
 <div class="grid steps">
 <div class="card"><b class="n">1</b><h3>Crie a loja</h3><p class="muted">Nome, logo, capa e o seu WhatsApp. Escolha a sua moeda: real, euro, kwanza, metical, dólar…</p></div>
 <div class="card"><b class="n">2</b><h3>Fotografe os produtos</h3><p class="muted">Carregue fotos direto do telemóvel, com preço e descrição.</p></div>
-<div class="card"><b class="n">3</b><h3>Partilhe o link</h3><p class="muted">fumacraft.pages.dev/a-sua-loja no Status, Instagram, TikTok e grupos.</p></div>
+<div class="card"><b class="n">3</b><h3>Partilhe o link</h3><p class="muted"><span style="white-space:nowrap">fumacraft.pages.dev/a-sua-loja</span> no Status, Instagram, TikTok e grupos.</p></div>
 <div class="card"><b class="n">4</b><h3>Receba pedidos</h3><p class="muted">O cliente monta o carrinho e o pedido chega pronto no WhatsApp. Sem caderno, sem confusão.</p></div></div>
 <h2>Para quem vende pelo WhatsApp</h2>
-<div class="grid"><div class="card">🛒 <b>Mercearias</b></div><div class="card">🍔 <b>Restaurantes e lanches</b></div><div class="card">👗 <b>Roupa e calçado</b></div><div class="card">💄 <b>Beleza e cosméticos</b></div><div class="card">🎂 <b>Bolos e doces</b></div><div class="card">📱 <b>Eletrónicos</b></div></div>
-<h2>Preço simples</h2>${planCard()}
+<div class="grid g3"><div class="card">🛒 <b>Mercearias</b></div><div class="card">🍔 <b>Restaurantes e lanches</b></div><div class="card">👗 <b>Roupa e calçado</b></div><div class="card">💄 <b>Beleza e cosméticos</b></div><div class="card">🎂 <b>Bolos e doces</b></div><div class="card">📱 <b>Eletrónicos</b></div></div>
+<h2 style="text-align:center">Preço simples</h2>${planCard()}
 <h2>Perguntas frequentes</h2>
 <details><summary>Preciso de cartão para testar?</summary><p class="muted">Não. Tem ${TRIAL_DAYS} dias grátis completos. Só paga se quiser continuar.</p></details>
 <details><summary>Os clientes precisam de instalar alguma coisa?</summary><p class="muted">Não. Abrem o link no navegador, escolhem os produtos e o pedido vai para o seu WhatsApp.</p></details>
@@ -129,7 +129,7 @@ function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minut
 <div style="text-align:center;margin:30px 0"><a class="btn" href="/entrar" data-l>Começar grátis agora</a></div>`}
 function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">${PRICE}<span style="font-size:16px;font-weight:600">/mês</span></div>
 <ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Link próprio da loja</li><li>Logo e capa personalizadas</li><li>Entrega ou levantamento</li><li>Qualquer moeda</li></ul>
-<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Cartão ou PayPal. Cancele quando quiser.</p></div>`}
+<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Depois do teste: cartão ou PayPal. Cancele quando quiser.</p></div>`}
 function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 
 /* ===== AUTH ===== */
@@ -153,14 +153,14 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).order('sort').order('created_at');
  const left=daysLeft(s),url=storeUrl(s);
  const co=CHECKOUT_URL?CHECKOUT_URL+(CHECKOUT_URL.includes('?')?'&':'?')+'checkout[email]='+encodeURIComponent(me.email)+'&checkout[custom][store_id]='+s.id:'';
- app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1><button class="btn s r" id="lo" style="flex:0">Sair</button></div>
+ app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1>${me.email==='beniciosilver18@gmail.com'?'<a class="btn s" href="/admin" data-l style="flex:0">Admin</a>':''}<button class="btn s r" id="lo" style="flex:0">Sair</button></div>
 ${s.plan==='active'?'<div class="banner g">✅ Plano ativo. A sua loja está online.</div>':`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O teste terminou e a sua loja está em pausa para os clientes.'} ${co?`<a class="btn s y" href="${co}" target="_blank" rel="noopener">Assinar ${PRICE}/mês</a>`:''}</div>`}
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
 <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
-${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px">`:'<div class="thumb" style="width:52px;font-size:22px;flex:0 0 52px">📦</div>'}
+${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px">`:`<div class="thumb ph" style="width:52px;font-size:22px;flex:0 0 52px">${esc(p.name.trim()[0].toUpperCase())}</div>`}
 <div style="min-width:0"><b>${esc(p.name)}</b><br><span class="small muted">${fmt(p.price,s.currency)}</span> <span class="badge ${p.active?'on':''}">${p.active?'Visível':'Oculto'}</span></div></div>
-<button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Adicione o seu primeiro produto com foto.</p>'}</div>
+<button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
  $('#lo').onclick=async()=>{await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
@@ -203,6 +203,25 @@ function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',categ
   catch(e){toast(e.message||'Erro');b.disabled=false;b.textContent='Tentar de novo'}};
  const x=$('#px');if(x)x.onclick=async()=>{if(!confirm('Apagar este produto?'))return;await sb.from('products').delete().eq('id',p.id);toast('Apagado');panel()};}
 
+
+/* ===== ADMIN ===== */
+async function admin(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
+ const r=await sb.rpc('admin_stores');if(r.error){app.innerHTML='<div class="card" style="text-align:center;margin-top:30px"><h2>Acesso restrito</h2><p class="muted">Esta área é só para o administrador.</p></div>';return}
+ const st=r.data||[],u=(await sb.rpc('admin_users_count')).data||0;
+ const paid=st.filter(s=>s.plan==='active'),trial=st.filter(s=>s.plan!=='active'&&daysLeft(s)>0),exp=st.filter(s=>s.plan!=='active'&&daysLeft(s)===0);
+ const k=(t,v,c='')=>`<div class="card" style="text-align:center"><div class="muted small">${t}</div><div style="font-size:28px;font-weight:900;${c}">${v}</div></div>`;
+ const draw=(q='',f='all')=>{const list=st.filter(s=>(f==='all'||(f==='paid'&&s.plan==='active')||(f==='trial'&&trial.includes(s))||(f==='exp'&&exp.includes(s)))&&(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
+ app.innerHTML=`<h1 style="margin:6px 0">Painel Admin</h1><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
+${k('Receita mensal',fmt(paid.length*9.99,'USD'),'color:var(--g)')}${k('Assinantes',paid.length)}${k('Em teste',trial.length)}${k('Teste terminado',exp.length,'color:#b3261e')}${k('Lojas',st.length)}${k('Contas',u)}</div>
+<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px">${[['all','Todas'],['paid','Assinantes'],['trial','Em teste'],['exp','Teste terminado']].map(([v,t])=>`<option value="${v}" ${v===f?'selected':''}>${t}</option>`).join('')}</select></div>
+${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge ${s.plan==='active'?'on':''}">${s.plan==='active'?'Assinante':d>0?'Teste: '+d+'d':'Teste terminado'}</span><br>
+<span class="small muted">${esc(s.email)} · ${s.products} produtos · ${s.currency} · desde ${new Date(s.created_at).toLocaleDateString('pt-PT')}</span></div></div>
+<div class="row" style="margin-top:10px"><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>
+${s.plan==='active'?`<button class="btn s r" data-pl="trial" data-id="${s.id}">Desativar</button>`:`<button class="btn s" data-pl="active" data-id="${s.id}">Ativar plano</button>`}</div></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
+ const aq=$('#aq');aq.oninput=()=>{const pos=aq.selectionStart;draw(aq.value,$('#af').value);const n=$('#aq');n.focus();n.setSelectionRange(pos,pos)};$('#af').onchange=()=>draw($('#aq').value,$('#af').value);
+ app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_set_plan',{sid:b.dataset.id,p:b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});};
+ draw();}
+
 /* ===== STOREFRONT ===== */
 const DEMO={id:'demo',slug:'exemplo',name:'Mercearia da Ana',whatsapp:'5511999999999',currency:'BRL',description:'Frutas, legumes e mercearia com entrega no mesmo dia.',logo_url:'',cover_url:'',delivery:true,pickup:true,delivery_fee:8,plan:'active',
  products:[{id:'a',name:'Cesta de frutas 3 kg',price:39.9,e:'🍎',category:'Frutas',description:'Banana, maçã, laranja e manga'},{id:'b',name:'Arroz agulha 5 kg',price:27.5,e:'🍚',category:'Mercearia'},{id:'c',name:'Ovos caipira 30 un.',price:24,e:'🥚',category:'Mercearia'},{id:'d',name:'Pão caseiro',price:9.5,e:'🍞',category:'Padaria',description:'Feito hoje'},{id:'e',name:'Café moído 500 g',price:18.9,e:'☕',category:'Mercearia'},{id:'f',name:'Kit legumes da semana',price:32,e:'🥕',category:'Frutas'}]};
@@ -212,14 +231,14 @@ async function loadStore(slug){app.innerHTML='<div class="spin"></div>';
  if(!isLive(s)){app.innerHTML=`<div class="card" style="text-align:center;margin-top:30px"><h2>${esc(s.name)}</h2><p class="muted">Esta loja está temporariamente indisponível.</p><a class="btn" href="https://wa.me/${s.whatsapp}">Falar no WhatsApp</a></div>`;return}
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).eq('active',true).order('sort').order('created_at');s.products=ps||[];storefront(s,false);}
 let cart={},cat='';
-function storefront(s,demo){document.title=s.name+' · Fumacraft';const key='fc_cart_'+s.slug;cart=JSON.parse(localStorage.getItem(key)||'{}');cat='';
+function storefront(s,demo){document.title=s.name+' · Fumacraft';document.querySelector('.logo').lastChild.textContent=s.name;const key='fc_cart_'+s.slug;cart=JSON.parse(localStorage.getItem(key)||'{}');cat='';
  const cats=[...new Set(s.products.map(p=>p.category).filter(Boolean))];
- const ph=(p,cls='thumb')=>p.photo_url?`<img class="${cls}" src="${esc(p.photo_url)}" alt="${esc(p.name)}" loading="lazy">`:`<div class="${cls}">${esc(p.e||'📦')}</div>`;
+ const ph=(p,cls='thumb')=>p.photo_url?`<img class="${cls}" src="${esc(p.photo_url)}" alt="${esc(p.name)}" loading="lazy">`:(p.e?`<div class="${cls}">${esc(p.e)}</div>`:`<div class="${cls} ph" style="font-size:34px">${esc(p.name.trim()[0].toUpperCase())}</div>`);
  const draw=()=>{localStorage.setItem(key,JSON.stringify(cart));const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0),count=items.reduce((a,p)=>a+cart[p.id],0);
   const q=($('#q')?.value||'').toLowerCase();
   app.innerHTML=`${demo?'<div class="banner g">👀 Loja de exemplo. <a href="/entrar" data-l><b>Crie a sua grátis →</b></a></div>':''}
 <div class="cover" style="${s.cover_url?`background-image:url('${esc(s.cover_url)}')`:''}"></div>
-<div class="shead">${s.logo_url?`<img class="slogo" src="${esc(s.logo_url)}" alt="">`:'<div class="slogo">🛍️</div>'}<div style="padding-bottom:4px"><h1 style="margin:0;font-size:24px">${esc(s.name)}</h1></div></div>
+<div class="shead">${s.logo_url?`<img class="slogo" src="${esc(s.logo_url)}" alt="">`:`<div class="slogo ph">${esc((s.name||'?').trim()[0].toUpperCase())}</div>`}<div style="padding-bottom:4px"><h1 style="margin:0;font-size:24px">${esc(s.name)}</h1></div></div>
 ${s.description?`<p class="muted" style="margin:0 4px 12px">${esc(s.description)}</p>`:''}
 <div class="row" style="margin-bottom:12px;flex-wrap:nowrap"><input id="q" placeholder="🔎 Procurar produto…" value="${esc(q)}"><a class="btn s o" style="flex:0 0 auto" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">💬 Contacto</a></div>
 ${cats.length>1?`<div class="chips"><button class="chip ${cat?'':'on'}" data-c="">Tudo</button>${cats.map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}
