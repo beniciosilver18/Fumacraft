@@ -24,6 +24,10 @@ main{max-width:1000px;margin:0 auto;padding:16px}
 .btn:disabled{opacity:.6}.btn.o{background:#fff;color:var(--g);border:2px solid var(--g)}.btn.s{padding:8px 14px;font-size:14px}.btn.y{background:var(--y);color:#222}.btn.w{width:100%}.btn.r{background:#fff;color:#b3261e;border:1px solid #f0c9c6}
 .hero{text-align:center;padding:36px 8px 26px}.hero h1{font-size:clamp(30px,7vw,52px);margin:0 0 12px;line-height:1.08;letter-spacing:-.5px}.hero h1 span{color:var(--g)}
 .hero p{color:var(--m);font-size:18px;max-width:640px;margin:0 auto 22px}
+.hero.bg{position:relative;overflow:hidden;border-radius:22px;margin:10px 0 18px;padding:48px 16px 34px;color:#fff;background:#111 url(/hero.webp) center/cover no-repeat}
+.hero.bg:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.72))}
+.hero.bg>*{position:relative}.hero.bg p{color:#eee}.hero.bg h1{text-shadow:0 2px 12px rgba(0,0,0,.5)}.hero.bg h1 span{color:#ffc21a}
+.hero.bg .btn.o{background:rgba(255,255,255,.12);color:#fff;border-color:#fff}
 .pill{display:inline-block;background:var(--g2);color:var(--g1);font-weight:700;font-size:13px;padding:6px 12px;border-radius:999px;margin-bottom:14px}
 .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}.grid.p{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
 .card{background:#fff;border:1px solid var(--b);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
@@ -112,7 +116,7 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
 
 /* ===== LANDING ===== */
 function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minutos';app.innerHTML=`
-<section class="hero"><span class="pill">✨ ${TRIAL_DAYS} dias grátis · sem cartão</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
+<section class="hero bg"><span class="pill">✨ ${TRIAL_DAYS} dias grátis · sem cartão</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
 <p>Fotos dos produtos, carrinho e pedidos que chegam organizados no seu WhatsApp, com itens, total, nome e endereço do cliente.</p>
 <a class="btn y w" href="/explorar" data-l style="max-width:460px;margin:0 auto 14px;font-size:20px;padding:20px;display:flex">🔎 Explorar lojas e produtos</a>
 <div class="row" style="justify-content:center;max-width:460px;margin:0 auto"><a class="btn" href="/entrar" data-l>Criar a minha loja</a><a class="btn o" href="/exemplo" data-l>Ver exemplo</a></div></section>
