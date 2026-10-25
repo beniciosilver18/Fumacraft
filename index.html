@@ -155,9 +155,9 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
  if(!s)return storeForm(null);
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).order('sort').order('created_at');
  const left=daysLeft(s),url=storeUrl(s);
- const co=PAGAR_URL;const pl=paidLeft(s);
+ const pl=paidLeft(s);
  app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1><button class="btn s r" id="lo" style="flex:0">Sair</button></div>
-${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5&&co?`<a class="btn s y" href="${co}" target="_blank" rel="noopener">Renovar ${PAGAR_PRICE}</a>`:''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'}<br>${co?`<a class="btn s y" style="margin-top:8px" href="${co}" target="_blank" rel="noopener">Pagar ${PAGAR_PRICE} / 30 dias</a><div class="small muted" style="margin-top:6px">M-Pesa, eMola${''}. Use o email <b>${esc(me.email)}</b> no pagamento. A loja é ativada em até 24h.</div>`:''}</div>`}
+${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5?'<div id="payb"></div>':''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'}<div id="payb"></div></div>`}
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
 <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
@@ -169,7 +169,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
 <button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="ol" style="margin-top:10px"></div></div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
  $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
- loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
+ payBox();loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
  $('#lo').onclick=async()=>{await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
@@ -294,6 +294,21 @@ ${modes.length>1?`<label>Como quer receber?</label><div class="tabs">${modes.map
 <p class="small muted">Guarde este código. Ao chegar à loja, diga o código ou mostre o QR e o vendedor vê logo o seu pedido.</p>
 <a class="btn w" href="${wa}" style="font-size:17px;padding:15px">💬 Enviar pedido pelo WhatsApp</a>
 <button class="btn o w" id="bk2" style="margin-top:10px">Voltar à loja</button></div>`;$('#bk2').onclick=back;location.href=wa};}
+
+/* ===== PAGAR (subscription) ===== */
+function payBox(){const el=$('#payb');if(!el)return;let m='MPESA';
+ el.innerHTML=`<div style="margin-top:10px;background:#fff;border-radius:12px;padding:12px;color:#222"><b>Pagar ${PAGAR_PRICE} · 30 dias</b><div class="tabs" style="margin-top:8px"><button data-pm="MPESA" class="on">M-Pesa</button><button data-pm="EMOLA">eMola</button></div>
+<input id="pph" inputmode="numeric" maxlength="9" placeholder="Número, ex.: 84XXXXXXX" value="${esc(localStorage.getItem('fc_payphone')||'')}"><button class="btn w" id="ppg" style="margin-top:8px">Pagar ${PAGAR_PRICE}</button><div id="pps" class="small" style="margin-top:6px"></div></div>`;
+ el.querySelectorAll('[data-pm]').forEach(b=>b.onclick=()=>{m=b.dataset.pm;el.querySelectorAll('[data-pm]').forEach(x=>x.classList.toggle('on',x===b))});
+ $('#ppg').onclick=async()=>{const ph=$('#pph').value.replace(/\D/g,'');if(!/^8[2-7]\d{7}$/.test(ph))return toast('Número com 9 dígitos, ex.: 84XXXXXXX');localStorage.setItem('fc_payphone',ph);
+  const g=$('#ppg'),s=$('#pps');g.disabled=true;g.textContent='A enviar…';
+  const r=await sb.functions.invoke('pagar-pay',{body:{method:m,phone:ph}});let d=r.data;if(r.error){try{d=await r.error.context.json()}catch(e){}}
+  if(!d?.reference){g.disabled=false;g.textContent='Pagar '+PAGAR_PRICE;s.textContent='❌ '+(d?.error||'Não foi possível iniciar o pagamento.');return}
+  s.textContent='📲 Confirme o pagamento com o seu PIN no telemóvel…';g.textContent='A aguardar confirmação…';
+  const t0=Date.now();const poll=async()=>{const q=await sb.functions.invoke('pagar-pay',{body:{action:'status',reference:d.reference}});const st=q.data?.status;
+   if(st==='PAID'){toast('Pagamento confirmado! Loja ativa por 30 dias');return panel()}
+   if(['FAILED','CANCELLED'].includes(st)||Date.now()-t0>240000){g.disabled=false;g.textContent='Tentar de novo';s.textContent='❌ '+(q.data?.message||'Pagamento não concluído.');return}
+   setTimeout(poll,10000+Math.random()*3000)};setTimeout(poll,8000);};}
 
 /* ===== ORDERS (seller) ===== */
 const stLabel={novo:'🟡 Novo',pronto:'🔵 Pronto',entregue:'🟢 Entregue'};
