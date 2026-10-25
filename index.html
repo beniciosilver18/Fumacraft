@@ -70,7 +70,7 @@ const SB_URL='https://hqjmkdfbwdtxgifkenew.supabase.co';
 const SB_KEY='sb_publishable_8vh5KLV4daRsTSJNsL-rxQ_psAAMk0O';
 const PAGAR_URL='';const PAGAR_PRICE='640 MT';const CHECKOUT_URL_LS='https://fumacraft.lemonsqueezy.com/checkout/buy/62bcfc9c-c45b-4f99-aed1-9458e95aa3e1';
 const TRIAL_DAYS=7, PRICE='US$9,99';
-const RESERVED=['','admin','explorar','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
+const RESERVED=['','admin','explorar','planos','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
 const CUR={BRL:'pt-BR',EUR:'pt-PT',AOA:'pt-AO',MZN:'pt-MZ',CVE:'pt-CV',USD:'en-US',GBP:'en-GB',NGN:'en-NG',KES:'en-KE',ZAR:'en-ZA',GHS:'en-GH'};
 /* ===== HELPERS ===== */
 const sb=supabase.createClient(SB_URL,SB_KEY);
@@ -106,7 +106,7 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
  $('#hb').classList.toggle('hide',isStore);if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
- if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();if(p==='explorar')return explore();
+ if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();if(p==='explorar')return explore();if(p==='planos')return plans();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
 
@@ -157,7 +157,8 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
  const left=daysLeft(s),url=storeUrl(s);
  const pl=paidLeft(s);
  app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1><button class="btn s r" id="lo" style="flex:0">Sair</button></div>
-${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5?'<div id="payb"></div>':''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'}<div id="payb"></div></div>`}
+${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5?'<a class="btn s y" href="/planos" data-l>Renovar</a>':''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'} <a class="btn s y" href="/planos" data-l>Ver planos</a></div>`}
+<div class="row" style="margin:10px 0;flex-wrap:nowrap"><a class="btn s o" href="/planos" data-l>💳 Planos e pagamento</a></div>
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
 <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
@@ -169,7 +170,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
 <button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div></div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
  $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
- payBox();notifBox(s);loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
+ notifBox(s);loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
  $('#lo').onclick=async()=>{if(rtCh){sb.removeChannel(rtCh);rtCh=null}await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
@@ -296,8 +297,8 @@ ${modes.length>1?`<label>Como quer receber?</label><div class="tabs">${modes.map
 <button class="btn o w" id="bk2" style="margin-top:10px">Voltar à loja</button></div>`;$('#bk2').onclick=back;location.href=wa};}
 
 /* ===== PAGAR (subscription) ===== */
-function payBox(){const el=$('#payb');if(!el)return;let m='MPESA';
- el.innerHTML=`<div style="margin-top:10px;background:#fff;border-radius:12px;padding:12px;color:#222"><b>Pagar ${PAGAR_PRICE} · 30 dias</b><div class="tabs" style="margin-top:8px"><button data-pm="MPESA" class="on">M-Pesa</button><button data-pm="EMOLA">eMola</button></div>
+function payBox(done){const el=$('#payb');if(!el)return;let m='MPESA';
+ el.innerHTML=`<div><div class="tabs" style="margin-top:8px"><button data-pm="MPESA" class="on">M-Pesa</button><button data-pm="EMOLA">eMola</button></div>
 <input id="pph" inputmode="numeric" maxlength="9" placeholder="Número, ex.: 84XXXXXXX" value="${esc(localStorage.getItem('fc_payphone')||'')}"><button class="btn w" id="ppg" style="margin-top:8px">Pagar ${PAGAR_PRICE}</button><div id="pps" class="small" style="margin-top:6px"></div></div>`;
  el.querySelectorAll('[data-pm]').forEach(b=>b.onclick=()=>{m=b.dataset.pm;el.querySelectorAll('[data-pm]').forEach(x=>x.classList.toggle('on',x===b))});
  $('#ppg').onclick=async()=>{const ph=$('#pph').value.replace(/\D/g,'');if(!/^8[2-7]\d{7}$/.test(ph))return toast('Número com 9 dígitos, ex.: 84XXXXXXX');localStorage.setItem('fc_payphone',ph);
@@ -306,7 +307,7 @@ function payBox(){const el=$('#payb');if(!el)return;let m='MPESA';
   if(!d?.reference){g.disabled=false;g.textContent='Pagar '+PAGAR_PRICE;s.textContent='❌ '+(d?.error||'Não foi possível iniciar o pagamento.');return}
   s.textContent='📲 Confirme o pagamento com o seu PIN no telemóvel…';g.textContent='A aguardar confirmação…';
   const t0=Date.now();const poll=async()=>{const q=await sb.functions.invoke('pagar-pay',{body:{action:'status',reference:d.reference}});const st=q.data?.status;
-   if(st==='PAID'){toast('Pagamento confirmado! Loja ativa por 30 dias');return panel()}
+   if(st==='PAID'){toast('Pagamento confirmado! Loja ativa por 30 dias');return done?done():panel()}
    if(['FAILED','CANCELLED'].includes(st)||Date.now()-t0>240000){g.disabled=false;g.textContent='Tentar de novo';s.textContent='❌ '+(q.data?.message||'Pagamento não concluído.');return}
    setTimeout(poll,10000+Math.random()*3000)};setTimeout(poll,8000);};}
 
@@ -332,6 +333,21 @@ function notifBox(s){listenOrders(s);const el=$('#nb');if(!el||!('Notification' 
   $('#nbo').onclick=async()=>{const r=await Notification.requestPermission();if(r==='granted'){toast('Notificações ativadas');notify('Fumacraft','As notificações de pedidos estão ativas ✅','/painel')}else toast('Notificações bloqueadas. Pode ativá-las nas definições do navegador.');notifBox(s)}}
  else if(Notification.permission==='denied')el.innerHTML='<p class="small muted" style="margin-top:8px">🔕 Notificações bloqueadas. Ative nas definições do navegador para este site.</p>';
  else el.innerHTML='<p class="small muted" style="margin-top:8px">🔔 Notificações de pedidos ativas.</p>';}
+
+/* ===== PLANOS ===== */
+async function plans(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';document.title='Planos · Fumacraft';
+ const {data:s}=await sb.from('stores').select('*').eq('owner',me.id).maybeSingle();if(!s)return go('/painel');
+ const {data:pays}=await sb.from('payments').select('*').eq('store_id',s.id).order('created_at',{ascending:false}).limit(10);
+ const pl=paidLeft(s),left=daysLeft(s);
+ const status=isPaid(s)?`<div class="banner g">✅ Plano Loja ativo até <b>${new Date(s.paid_until).toLocaleDateString('pt-PT')}</b> (${pl} dia(s)).</div>`:left>0?`<div class="banner">🎁 Está no teste grátis: <b>${left} dia(s)</b> restante(s).</div>`:`<div class="banner">⏸️ A sua loja está em pausa. Pague para voltar a receber pedidos.</div>`;
+ const stl={PAID:'✅ Pago',FAILED:'❌ Falhou',CANCELLED:'❌ Cancelado',PROCESSING:'⏳ A processar',PENDING:'⏳ Pendente'};
+ app.innerHTML=`<h1 style="margin:6px 0">💳 Planos</h1>${status}
+<div class="card plan" style="margin-top:14px"><div class="muted">Plano Loja</div><div class="big">${PAGAR_PRICE}<span style="font-size:16px;font-weight:600"> / 30 dias</span></div>
+<ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Código e QR de cada pedido</li><li>Link próprio e presença no Explorar</li><li>Notificações de novos pedidos</li></ul>
+<h3 style="margin-bottom:4px">Forma de pagamento</h3><p class="small muted" style="margin-top:0">Pague com M-Pesa ou eMola. Recebe um pedido de PIN no telemóvel. Sem renovação automática: paga quando quiser, e os dias somam-se.</p>
+<div id="payb"></div></div>
+<div class="card" style="margin-top:14px"><h3>Histórico de pagamentos</h3>${(pays||[]).map(p=>`<div class="li"><span>${new Date(p.created_at).toLocaleDateString('pt-PT')} · ${p.method==='EMOLA'?'eMola':'M-Pesa'}<br><span class="small muted">${stl[p.status]||p.status}</span></span><b>${p.amount} MT</b></div>`).join('')||'<p class="small muted">Ainda não há pagamentos.</p>'}</div>
+<div style="height:30px"></div>`;payBox(()=>plans());}
 
 /* ===== ORDERS (seller) ===== */
 const stLabel={novo:'🟡 Novo',pronto:'🔵 Pronto',entregue:'🟢 Entregue'};
