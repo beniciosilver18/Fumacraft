@@ -171,10 +171,14 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
 <button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
 <div class="card" style="margin-top:14px"><h3>🧾 Pedidos</h3><p class="small muted" style="margin-top:0">Quando o cliente chegar, peça o código do pedido ou leia o QR.</p>
 <div class="row" style="flex-wrap:nowrap"><input id="oc" placeholder="Código, ex.: K7M2QX" style="text-transform:uppercase" maxlength="6"><button class="btn s" id="ov" style="flex:0 0 auto">Ver</button></div>
-<button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div></div>
+<button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div>
+<div class="row" style="margin-top:12px;align-items:center"><label class="small" style="flex:1 1 180px">🗑️ Apagar pedidos entregues automaticamente<select id="ret" style="margin-top:4px">${[[0,'Nunca'],[7,'Depois de 7 dias'],[30,'Depois de 30 dias']].map(([v,t])=>`<option value="${v}" ${(s.order_retention_days||0)==v?'selected':''}>${t}</option>`).join('')}</select></label>
+<button class="btn s r" id="odel" style="flex:0 0 auto">Apagar entregues agora</button></div></div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
  $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
- notifBox(s);loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
+ notifBox(s);loadOrders(s);
+ $('#ret').onchange=async e=>{const v=+e.target.value;const er=(await sb.from('stores').update({order_retention_days:v}).eq('id',s.id)).error;if(er)return toast(er.message);s.order_retention_days=v;toast(v?'Pedidos entregues serão apagados após '+v+' dias':'Pedidos ficam guardados')};
+ $('#odel').onclick=async()=>{if(!confirm('Apagar todos os pedidos já entregues? Isto não pode ser desfeito.'))return;const er=(await sb.from('orders').delete().eq('store_id',s.id).eq('status','entregue')).error;if(er)return toast(er.message);toast('Pedidos entregues apagados');loadOrders(s)};const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
  $('#lo').onclick=async()=>{if(rtCh){sb.removeChannel(rtCh);rtCh=null}await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
@@ -230,9 +234,17 @@ ${k('Receita mensal',fmt(paid.length*640,'MZN'),'color:var(--g)')}${k('Assinante
 ${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge ${s.plan==='active'?'on':''}">${isPaid(s)?'Pago: '+paidLeft(s)+'d':d>0?'Teste: '+d+'d':'Em pausa'}</span><br>
 <span class="small muted">${esc(s.email)} · ${s.products} produtos · ${s.currency} · desde ${new Date(s.created_at).toLocaleDateString('pt-PT')}</span></div></div>
 <div class="row" style="margin-top:10px"><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>
-<button class="btn s" data-pl="30" data-id="${s.id}">+30 dias</button>${isPaid(s)?`<button class="btn s r" data-pl="0" data-id="${s.id}">Desativar</button>`:''}</div></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
+<button class="btn s" data-pl="30" data-id="${s.id}">+30 dias</button>${isPaid(s)?`<button class="btn s r" data-pl="0" data-id="${s.id}">Desativar</button>`:''}</div>
+<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">🗑️ Eliminar…</summary><div class="row" style="margin-top:8px">
+<button class="btn s o" data-dx="orders30" data-id="${s.id}">Pedidos +30 dias</button><button class="btn s o" data-dx="ordersall" data-id="${s.id}">Todos os pedidos</button>
+<button class="btn s r" data-dx="store" data-id="${s.id}" data-n="${esc(s.name)}">Eliminar loja</button><button class="btn s r" data-dx="user" data-id="${s.id}" data-n="${esc(s.email)}">Eliminar conta</button></div></details></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
  const aq=$('#aq');aq.oninput=()=>{const pos=aq.selectionStart;draw(aq.value,$('#af').value);const n=$('#aq');n.focus();n.setSelectionRange(pos,pos)};$('#af').onchange=()=>draw($('#aq').value,$('#af').value);
- app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_add_days',{sid:b.dataset.id,d:+b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});};
+ app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_add_days',{sid:b.dataset.id,d:+b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});
+ app.querySelectorAll('[data-dx]').forEach(b=>b.onclick=async()=>{const t=b.dataset.dx,id=b.dataset.id,n=b.dataset.n||'';
+  const msg={orders30:'Apagar pedidos com mais de 30 dias desta loja?',ordersall:'Apagar TODOS os pedidos desta loja?',store:'Eliminar a loja "'+n+'", produtos e pedidos?',user:'Eliminar a conta '+n+' e tudo o que tem?'}[t];
+  if(!confirm(msg+' Isto não pode ser desfeito.'))return;if((t==='store'||t==='user')&&prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;
+  const r=t==='store'?await sb.rpc('admin_delete_store',{sid:id}):t==='user'?await sb.rpc('admin_delete_user',{sid:id}):await sb.rpc('admin_delete_orders',{sid:id,older_days:t==='orders30'?30:0});
+  if(r.error){b.disabled=false;return toast(r.error.message)}toast(t.startsWith('orders')?(r.data||0)+' pedidos apagados':'Eliminado');admin()});};
  draw();}
 
 /* ===== STOREFRONT ===== */
@@ -369,8 +381,8 @@ async function openOrder(s,raw){let c=String(raw||'').trim();const m=c.match(/pe
 <div class="card" style="margin-top:10px">${o.items.map(i=>`<div class="li"><span>${i.qty}× ${esc(i.name)}</span><b>${fmt(i.price*i.qty,s.currency)}</b></div>`).join('')}
 <div class="li"><span>${o.mode==='entrega'?'🛵 Entrega':'🏪 Levantamento'}</span><b>${o.fee?fmt(o.fee,s.currency):'Grátis'}</b></div><div class="li" style="border:0"><b>Total</b><b>${fmt(o.total,s.currency)}</b></div></div>
 ${o.address?`<p class="small">📍 ${esc(o.address)}</p>`:''}${o.note?`<p class="small">📝 ${esc(o.note)}</p>`:''}
-<div class="row" style="margin-top:12px">${o.status!=='entregue'?`<button class="btn" data-st="${o.status==='novo'?'pronto':'entregue'}">${o.status==='novo'?'Marcar pronto':'Marcar entregue'}</button>`:''}<button class="btn o" id="xc">Fechar</button></div></div>`;
- document.body.appendChild(md);md.onclick=e=>{if(e.target===md)md.remove()};md.querySelector('#xc').onclick=()=>md.remove();
+<div class="row" style="margin-top:12px">${o.status!=='entregue'?`<button class="btn" data-st="${o.status==='novo'?'pronto':'entregue'}">${o.status==='novo'?'Marcar pronto':'Marcar entregue'}</button>`:''}<button class="btn r" id="xd">Apagar</button><button class="btn o" id="xc">Fechar</button></div></div>`;
+ document.body.appendChild(md);md.onclick=e=>{if(e.target===md)md.remove()};md.querySelector('#xc').onclick=()=>md.remove();md.querySelector('#xd').onclick=async()=>{if(!confirm('Apagar o pedido '+o.code+'?'))return;const e=(await sb.from('orders').delete().eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Pedido apagado');loadOrders(s)};
  const b=md.querySelector('[data-st]');if(b)b.onclick=async()=>{b.disabled=true;const e=(await sb.from('orders').update({status:b.dataset.st}).eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Atualizado');loadOrders(s)};}
 function loadJsQR(){return window.jsQR?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
 async function scanQR(cb){const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet" style="text-align:center"><h3 style="margin-top:0">Aponte para o QR do cliente</h3><video playsinline muted style="width:100%;border-radius:12px;background:#000"></video><button class="btn o w" style="margin-top:10px">Fechar</button></div>`;document.body.appendChild(md);
