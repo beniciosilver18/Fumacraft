@@ -322,15 +322,20 @@ function instBtn(){if(standalone()||localStorage.getItem('fc_noinst'))return;if(
 addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;instBtn()});
 addEventListener('appinstalled',()=>{$('#ib')?.remove()});
 setTimeout(instBtn,4000);
+
+const VAPID='BC_EbstDYvF7mykSqgfC6m_RgJ9wDz_LFDIU4RFExzXgunIdL-OsQU_aJIqydzupTfs5c-L7otAsKfJ80nyJX18';
+function b64u(s){const p='='.repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,c=>c.charCodeAt(0))}
+async function pushSub(s){try{if(!('PushManager' in window))return;const reg=await navigator.serviceWorker.ready;let sub=await reg.pushManager.getSubscription();
+ if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(VAPID)});const j=sub.toJSON();
+ await sb.from('push_subs').upsert({endpoint:j.endpoint,store_id:s.id,sub:j})}catch(e){console.warn('push',e)}}
 let rtCh=null;
 async function notify(t,b,url){try{const r=await navigator.serviceWorker?.getRegistration();if(r)return r.showNotification(t,{body:b,icon:'/icon-192.png',badge:'/icon-192.png',data:{url},tag:'fc-'+Date.now()});new Notification(t,{body:b,icon:'/icon-192.png'})}catch(e){}}
 function listenOrders(s){if(rtCh||!('Notification' in window))return;
  rtCh=sb.channel('orders-'+s.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'orders',filter:'store_id=eq.'+s.id},p=>{const o=p.new;
-  if(Notification.permission==='granted')notify('🛍️ Novo pedido '+o.code,(o.customer||'Cliente')+' · '+fmt(o.total,s.currency),'/painel?pedido='+o.code);
   toast('Novo pedido '+o.code);loadOrders(s)}).subscribe();}
-function notifBox(s){listenOrders(s);const el=$('#nb');if(!el||!('Notification' in window))return;
+function notifBox(s){listenOrders(s);if('Notification' in window&&Notification.permission==='granted')pushSub(s);const el=$('#nb');if(!el||!('Notification' in window))return;
  if(Notification.permission==='default'){el.innerHTML=`<div class="banner" style="margin-top:10px">🔔 Ative as notificações para saber logo quando chega um pedido.<br><button class="btn s" id="nbo" style="margin-top:8px">Permitir notificações</button></div>`;
-  $('#nbo').onclick=async()=>{const r=await Notification.requestPermission();if(r==='granted'){toast('Notificações ativadas');notify('Fumacraft','As notificações de pedidos estão ativas ✅','/painel')}else toast('Notificações bloqueadas. Pode ativá-las nas definições do navegador.');notifBox(s)}}
+  $('#nbo').onclick=async()=>{const r=await Notification.requestPermission();if(r==='granted'){await pushSub(s);toast('Notificações ativadas');notify('Fumacraft','As notificações de pedidos estão ativas ✅','/painel')}else toast('Notificações bloqueadas. Pode ativá-las nas definições do navegador.');notifBox(s)}}
  else if(Notification.permission==='denied')el.innerHTML='<p class="small muted" style="margin-top:8px">🔕 Notificações bloqueadas. Ative nas definições do navegador para este site.</p>';
  else el.innerHTML='<p class="small muted" style="margin-top:8px">🔔 Notificações de pedidos ativas.</p>';}
 
