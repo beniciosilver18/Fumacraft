@@ -128,3 +128,22 @@ begin
  return query select c,lines,sub,f,sub+f;
 end $$;
 grant execute on function public.create_order(uuid,jsonb,text,text,text,text) to anon, authenticated;
+create table if not exists public.payments(
+ reference text primary key, store_id uuid not null references public.stores(id) on delete cascade,
+ pagar_id text, amount int not null, method text, status text not null default 'PENDING', days int not null default 30,
+ created_at timestamptz default now(), paid_at timestamptz);
+alter table public.payments enable row level security;
+drop policy if exists pay_owner on public.payments;
+create policy pay_owner on public.payments for select using (exists(select 1 from public.stores s where s.id=store_id and s.owner=auth.uid()));
+create or replace function public.apply_payment(ref text) returns boolean language plpgsql security definer set search_path=public as $$
+declare p payments;
+begin
+ update payments set status='PAID', paid_at=now() where reference=ref and status<>'PAID' returning * into p;
+ if not found then return false; end if;
+ update stores set plan='active', paid_until=greatest(coalesce(paid_until,now()),now())+make_interval(days=>p.days) where id=p.store_id;
+ return true;
+end $$;
+revoke all on function public.apply_payment(text) from public, anon, authenticated;
+create table if not exists public.app_secrets(name text primary key, value text not null, updated_at timestamptz default now());
+alter table public.app_secrets enable row level security;
+revoke all on public.app_secrets from anon, authenticated;
