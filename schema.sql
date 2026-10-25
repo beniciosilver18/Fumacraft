@@ -65,3 +65,20 @@ drop policy if exists img_upd on storage.objects;
 create policy img_upd on storage.objects for update to authenticated using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
 drop policy if exists img_del on storage.objects;
 create policy img_del on storage.objects for delete to authenticated using (bucket_id = 'images' and (storage.foldername(name))[1] = auth.uid()::text);
+create or replace function public.is_admin() returns boolean language sql stable as $$ select coalesce(auth.jwt()->>'email','') = 'beniciosilver18@gmail.com' $$;
+create or replace function public.admin_stores() returns table(id uuid, slug text, name text, whatsapp text, currency text, plan text, trial_started timestamptz, created_at timestamptz, email text, products bigint)
+language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  return query select s.id,s.slug,s.name,s.whatsapp,s.currency,s.plan,s.trial_started,s.created_at,u.email::text,(select count(*) from products p where p.store_id=s.id)
+  from stores s join auth.users u on u.id=s.owner order by s.created_at desc;
+end $$;
+create or replace function public.admin_set_plan(sid uuid, p text) returns void language plpgsql security definer set search_path=public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if p not in ('trial','active','canceled') then raise exception 'bad plan'; end if;
+  update stores set plan=p where id=sid;
+end $$;
+create or replace function public.admin_users_count() returns bigint language plpgsql security definer set search_path=public as $$
+begin if not public.is_admin() then raise exception 'forbidden'; end if; return (select count(*) from auth.users); end $$;
+revoke all on function public.admin_stores() from anon; revoke all on function public.admin_set_plan(uuid,text) from anon; revoke all on function public.admin_users_count() from anon;
