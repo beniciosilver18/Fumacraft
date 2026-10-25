@@ -147,3 +147,18 @@ revoke all on function public.apply_payment(text) from public, anon, authenticat
 create table if not exists public.app_secrets(name text primary key, value text not null, updated_at timestamptz default now());
 alter table public.app_secrets enable row level security;
 revoke all on public.app_secrets from anon, authenticated;
+create extension if not exists pg_net;
+create table if not exists public.push_subs(endpoint text primary key, store_id uuid not null references public.stores(id) on delete cascade, sub jsonb not null, created_at timestamptz default now());
+alter table public.push_subs enable row level security;
+drop policy if exists push_owner on public.push_subs;
+create policy push_owner on public.push_subs for all using (exists(select 1 from public.stores s where s.id=store_id and s.owner=auth.uid())) with check (exists(select 1 from public.stores s where s.id=store_id and s.owner=auth.uid()));
+insert into public.app_secrets(name,value) values ('VAPID_PUBLIC','BC_EbstDYvF7mykSqgfC6m_RgJ9wDz_LFDIU4RFExzXgunIdL-OsQU_aJIqydzupTfs5c-L7otAsKfJ80nyJX18'),('VAPID_PRIVATE','<VAPID_PRIVATE>'),('PUSH_HOOK_SECRET','<HOOK>') on conflict (name) do update set value=excluded.value;
+create or replace function public.notify_order() returns trigger language plpgsql security definer set search_path=public, extensions as $$
+begin
+  perform net.http_post(url:='https://hqjmkdfbwdtxgifkenew.supabase.co/functions/v1/push-order',
+    body:=jsonb_build_object('order_id',new.id),
+    headers:=jsonb_build_object('Content-Type','application/json','x-hook',(select value from app_secrets where name='PUSH_HOOK_SECRET')));
+  return new;
+end $$;
+drop trigger if exists orders_push on public.orders;
+create trigger orders_push after insert on public.orders for each row execute function public.notify_order();
