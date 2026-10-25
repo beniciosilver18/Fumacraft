@@ -9,7 +9,7 @@
 <meta property="og:description" content="Produtos com fotos, carrinho e pedidos direto no seu WhatsApp. Teste 7 dias grátis.">
 <meta name="theme-color" content="#0f7a4a">
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icon.svg">
+<link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--g:#0f7a4a;--g1:#0b5e39;--g2:#e8f5ee;--y:#f5b72f;--t:#16201b;--m:#5d6b64;--b:#e3e8e5;--r:16px;--sh:0 6px 24px rgba(16,40,28,.08)}
@@ -132,7 +132,7 @@ function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minut
 <div style="text-align:center;margin:30px 0"><a class="btn" href="/entrar" data-l>Começar grátis agora</a></div>`}
 function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">${PRICE}<span style="font-size:16px;font-weight:600">/mês</span></div>
 <ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Link próprio da loja</li><li>Logo e capa personalizadas</li><li>Entrega ou levantamento</li><li>Qualquer moeda</li></ul>
-<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Depois do teste: cartão ou PayPal. Cancele quando quiser.</p></div>`}
+<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Em Moçambique: ${PAGAR_PRICE} por 30 dias com M-Pesa ou eMola. Sem fidelização.</p></div>`}
 function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 
 /* ===== AUTH ===== */
@@ -166,11 +166,11 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
 <button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
 <div class="card" style="margin-top:14px"><h3>🧾 Pedidos</h3><p class="small muted" style="margin-top:0">Quando o cliente chegar, peça o código do pedido ou leia o QR.</p>
 <div class="row" style="flex-wrap:nowrap"><input id="oc" placeholder="Código, ex.: K7M2QX" style="text-transform:uppercase" maxlength="6"><button class="btn s" id="ov" style="flex:0 0 auto">Ver</button></div>
-<button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="ol" style="margin-top:10px"></div></div>
+<button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div></div>
 <button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
  $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
- payBox();loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
- $('#lo').onclick=async()=>{await sb.auth.signOut();me=null;go('/')};
+ payBox();notifBox(s);loadOrders(s);const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
+ $('#lo').onclick=async()=>{if(rtCh){sb.removeChannel(rtCh);rtCh=null}await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
  app.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>productForm(s,ps.find(p=>p.id===b.dataset.e)));}
@@ -309,6 +309,29 @@ function payBox(){const el=$('#payb');if(!el)return;let m='MPESA';
    if(st==='PAID'){toast('Pagamento confirmado! Loja ativa por 30 dias');return panel()}
    if(['FAILED','CANCELLED'].includes(st)||Date.now()-t0>240000){g.disabled=false;g.textContent='Tentar de novo';s.textContent='❌ '+(q.data?.message||'Pagamento não concluído.');return}
    setTimeout(poll,10000+Math.random()*3000)};setTimeout(poll,8000);};}
+
+/* ===== INSTALL + NOTIFICATIONS ===== */
+let instEv=null;const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+function instBtn(){if(standalone()||localStorage.getItem('fc_noinst'))return;if(!instEv&&!isIOS)return;if($('#ib'))return;
+ const b=document.createElement('div');b.id='ib';b.style.cssText='position:fixed;left:12px;right:12px;bottom:14px;z-index:60;background:#16201b;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:520px;margin:0 auto';
+ b.innerHTML=`<img src="/icon-192.png" width="40" height="40" style="border-radius:10px"><div style="flex:1;font-size:14px"><b>Instalar Fumacraft</b><br><span style="opacity:.8">${isIOS&&!instEv?'Toque em Partilhar e depois “Adicionar ao ecrã principal”':'Abra a sua loja como uma app'}</span></div>${instEv?'<button class="btn s y" id="ibg" style="flex:0 0 auto">Instalar</button>':''}<button id="ibx" style="background:none;border:0;color:#fff;font-size:20px;flex:0 0 auto" aria-label="Fechar">×</button>`;
+ document.body.appendChild(b);$('#ibx').onclick=()=>{localStorage.setItem('fc_noinst','1');b.remove()};
+ const g=$('#ibg');if(g)g.onclick=async()=>{instEv.prompt();const r=await instEv.userChoice;instEv=null;b.remove();if(r.outcome==='accepted')toast('Fumacraft instalado!')};}
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();instEv=e;instBtn()});
+addEventListener('appinstalled',()=>{$('#ib')?.remove()});
+setTimeout(instBtn,4000);
+let rtCh=null;
+async function notify(t,b,url){try{const r=await navigator.serviceWorker?.getRegistration();if(r)return r.showNotification(t,{body:b,icon:'/icon-192.png',badge:'/icon-192.png',data:{url},tag:'fc-'+Date.now()});new Notification(t,{body:b,icon:'/icon-192.png'})}catch(e){}}
+function listenOrders(s){if(rtCh||!('Notification' in window))return;
+ rtCh=sb.channel('orders-'+s.id).on('postgres_changes',{event:'INSERT',schema:'public',table:'orders',filter:'store_id=eq.'+s.id},p=>{const o=p.new;
+  if(Notification.permission==='granted')notify('🛍️ Novo pedido '+o.code,(o.customer||'Cliente')+' · '+fmt(o.total,s.currency),'/painel?pedido='+o.code);
+  toast('Novo pedido '+o.code);loadOrders(s)}).subscribe();}
+function notifBox(s){listenOrders(s);const el=$('#nb');if(!el||!('Notification' in window))return;
+ if(Notification.permission==='default'){el.innerHTML=`<div class="banner" style="margin-top:10px">🔔 Ative as notificações para saber logo quando chega um pedido.<br><button class="btn s" id="nbo" style="margin-top:8px">Permitir notificações</button></div>`;
+  $('#nbo').onclick=async()=>{const r=await Notification.requestPermission();if(r==='granted'){toast('Notificações ativadas');notify('Fumacraft','As notificações de pedidos estão ativas ✅','/painel')}else toast('Notificações bloqueadas. Pode ativá-las nas definições do navegador.');notifBox(s)}}
+ else if(Notification.permission==='denied')el.innerHTML='<p class="small muted" style="margin-top:8px">🔕 Notificações bloqueadas. Ative nas definições do navegador para este site.</p>';
+ else el.innerHTML='<p class="small muted" style="margin-top:8px">🔔 Notificações de pedidos ativas.</p>';}
 
 /* ===== ORDERS (seller) ===== */
 const stLabel={novo:'🟡 Novo',pronto:'🔵 Pronto',entregue:'🟢 Entregue'};
