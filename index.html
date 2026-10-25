@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fumacraft — Sua loja no WhatsApp em 5 minutos</title>
+<meta name="description" content="Crie sua loja online, receba pedidos organizados direto no WhatsApp. 7 dias grátis.">
+<meta name="theme-color" content="#0f7a4a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<style>
+:root{--g:#0f7a4a;--g2:#e8f5ee;--y:#f5b72f;--t:#16201b;--m:#5d6b64;--b:#e3e8e5;--r:14px}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--t);background:#fafcfb}
+a{color:var(--g)}header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border-bottom:1px solid var(--b);position:sticky;top:0;z-index:5}
+.logo{display:flex;gap:10px;align-items:center;font-weight:800;font-size:20px;text-decoration:none;color:var(--t)}.logo img{width:34px;height:34px}
+main{max-width:980px;margin:0 auto;padding:18px}
+.btn{display:inline-block;background:var(--g);color:#fff;border:0;border-radius:999px;padding:12px 20px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none}
+.btn.o{background:#fff;color:var(--g);border:2px solid var(--g)}.btn.s{padding:8px 14px;font-size:14px}.btn.y{background:var(--y);color:#222}
+.hero{text-align:center;padding:40px 10px}.hero h1{font-size:clamp(28px,6vw,46px);margin:0 0 12px;line-height:1.1}.hero p{color:var(--m);font-size:18px;max-width:620px;margin:0 auto 22px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.card{background:#fff;border:1px solid var(--b);border-radius:var(--r);padding:16px}
+.card h3{margin:6px 0}.muted{color:var(--m)}.price{font-weight:800;font-size:18px}
+.plan{max-width:420px;margin:30px auto;text-align:center;border:2px solid var(--g)}.plan .big{font-size:44px;font-weight:900}
+label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--b);border-radius:10px;font-size:15px;background:#fff}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.row>*{flex:1}
+.prod img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:var(--g2)}
+.ph{width:100%;aspect-ratio:1;border-radius:10px;background:var(--g2);display:flex;align-items:center;justify-content:center;font-size:40px}
+.cartbar{position:fixed;left:0;right:0;bottom:0;background:var(--g);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:700;cursor:pointer}
+.banner{background:#fff6dd;border:1px solid #f1d98a;border-radius:var(--r);padding:12px 14px;margin-bottom:14px}
+.qty{display:flex;align-items:center;gap:8px}.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--b);background:#fff;font-size:18px;cursor:pointer}
+.li{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--b)}
+.storehead{display:flex;gap:14px;align-items:center;margin-bottom:16px}.storehead img{width:64px;height:64px;border-radius:16px;object-fit:cover}
+.steps{counter-reset:s}.steps .card:before{counter-increment:s;content:counter(s);display:inline-flex;width:30px;height:30px;border-radius:50%;background:var(--g);color:#fff;align-items:center;justify-content:center;font-weight:800}
+.hide{display:none}footer{text-align:center;color:var(--m);padding:30px 10px 90px;font-size:13px}
+.copy{word-break:break-all;background:var(--g2);padding:10px;border-radius:10px;font-size:13px}
+.x{background:none;border:0;color:#b33;cursor:pointer;font-size:14px}
+</style>
+</head>
+<body>
+<header><a class="logo" href="#/"><img src="icon.svg" alt="">Fumacraft</a><nav class="row" style="flex:0"><a class="btn s o" href="#/painel" data-i="nav_panel">Minha loja</a></nav></header>
+<main id="app"></main>
+<footer>© Fumacraft · <span data-i="foot">Lojas no WhatsApp para pequenos negócios</span> · <a href="#/precos" data-i="pricing">Preços</a></footer>
+<script>
+/* ====== CONFIG ====== */
+const CHECKOUT_URL = ''; // Lemon Squeezy checkout link (US$9.99/mês, 7 dias grátis) — preencher quando a conta estiver criada
+const SUPPORT_WA = ''; // número WhatsApp de suporte, ex.: 258840000000
+const TRIAL_DAYS = 7;
+const CUR = {BRL:['pt-BR','BRL'],EUR:['pt-PT','EUR'],AOA:['pt-AO','AOA'],MZN:['pt-MZ','MZN'],USD:['en-US','USD'],NGN:['en-NG','NGN'],KES:['en-KE','KES'],ZAR:['en-ZA','ZAR']};
+const fmt=(v,c)=>{try{const [l,cc]=CUR[c]||CUR.USD;return new Intl.NumberFormat(l,{style:'currency',currency:cc}).format(v)}catch(e){return c+' '+v}};
+const $=s=>document.querySelector(s), app=$('#app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const enc=o=>btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const dec=s=>JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/')))));
+const load=()=>JSON.parse(localStorage.getItem('fc_store')||'null');
+const save=s=>localStorage.setItem('fc_store',JSON.stringify(s));
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+const DEMO={n:'Mercearia da Ana',w:'5511999999999',c:'BRL',d:'Frutas, legumes e mercearia com entrega no mesmo dia.',l:'',del:1,pk:1,fee:8,
+ p:[{i:'a',n:'Cesta de frutas (3 kg)',pr:39.9,e:'🍎',ds:'Banana, maçã, laranja e manga'},{i:'b',n:'Arroz agulha 5 kg',pr:27.5,e:'🍚'},{i:'c',n:'Ovos caipira (30 un.)',pr:24,e:'🥚'},{i:'d',n:'Pão caseiro',pr:9.5,e:'🍞',ds:'Feito hoje'},{i:'e',n:'Café moído 500 g',pr:18.9,e:'☕'},{i:'f',n:'Kit legumes da semana',pr:32,e:'🥕'}]};
+
+/* ====== ROUTER ====== */
+function route(){const h=location.hash||'#/';const [path,qs]=h.slice(1).split('?');const q=new URLSearchParams(qs||'');
+ window.scrollTo(0,0);
+ if(path==='/painel')return panel();
+ if(path==='/loja')return store(q.get('d')?dec(q.get('d')):DEMO, !q.get('d'));
+ if(path==='/precos')return pricing();
+ home();}
+addEventListener('hashchange',route);
+
+/* ====== LANDING ====== */
+function home(){app.innerHTML=`
+<section class="hero"><h1>Sua loja no WhatsApp,<br>pronta em 5 minutos</h1>
+<p>Cadastre os produtos, partilhe um link e receba pedidos organizados direto no seu WhatsApp. Sem caderno, sem mensagens perdidas.</p>
+<div class="row" style="justify-content:center;gap:10px"><a class="btn" href="#/painel">Criar minha loja grátis</a><a class="btn o" href="#/loja">Ver loja de exemplo</a></div>
+<p class="muted" style="font-size:14px;margin-top:14px">${TRIAL_DAYS} dias grátis · depois US$9,99/mês · cancele quando quiser</p></section>
+<h2>Como funciona</h2>
+<div class="grid steps">
+<div class="card"><h3>Crie a loja</h3><p class="muted">Nome, número de WhatsApp e moeda. Funciona no Brasil, Portugal, Angola, Moçambique e mais.</p></div>
+<div class="card"><h3>Adicione produtos</h3><p class="muted">Foto, preço e descrição. Altere quando quiser, pelo telemóvel.</p></div>
+<div class="card"><h3>Partilhe o link</h3><p class="muted">No Status, Instagram, TikTok ou grupos. O cliente escolhe e monta o carrinho.</p></div>
+<div class="card"><h3>Receba o pedido</h3><p class="muted">O pedido chega no seu WhatsApp já com itens, total, nome e endereço.</p></div>
+</div>
+<h2 style="margin-top:30px">Feito para quem vende pelo WhatsApp</h2>
+<div class="grid">
+<div class="card">🛒 <b>Mercearias e frutarias</b></div><div class="card">🍔 <b>Restaurantes e lanches</b></div>
+<div class="card">👗 <b>Roupa e acessórios</b></div><div class="card">💄 <b>Beleza e cosméticos</b></div>
+<div class="card">🎂 <b>Bolos e doces</b></div><div class="card">📱 <b>Eletrónicos</b></div></div>
+${planCard()}`;}
+function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">US$9,99<span style="font-size:16px">/mês</span></div>
+<p>Produtos ilimitados · Pedidos ilimitados no WhatsApp · Link da loja · Entrega ou levantamento · Qualquer moeda</p>
+<a class="btn" href="#/painel">Começar ${TRIAL_DAYS} dias grátis</a></div>`}
+function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}<p class="muted" style="text-align:center">Pagamento por cartão ou PayPal. Em Moçambique também M-Pesa e e-Mola.</p>`}
+
+/* ====== SELLER PANEL ====== */
+function panel(){let s=load();
+ if(!s){s={n:'',w:'',c:'BRL',d:'',l:'',del:1,pk:1,fee:0,p:[],t0:Date.now(),paid:0};}
+ const left=Math.max(0,TRIAL_DAYS-Math.floor((Date.now()-(s.t0||Date.now()))/864e5));
+ const link=s.n&&s.w?location.href.split('#')[0]+'#/loja?d='+enc(strip(s)):'';
+ app.innerHTML=`
+<h1>Minha loja</h1>
+${s.paid?'':`<div class="banner">${left>0?`Teste grátis: <b>${left} dia(s)</b> restantes.`:'O teste grátis terminou.'} ${CHECKOUT_URL?`<a class="btn s y" href="${CHECKOUT_URL}" target="_blank" rel="noopener">Assinar US$9,99/mês</a>`:''}</div>`}
+<div class="card"><h3>Dados da loja</h3>
+<label>Nome da loja</label><input id="n" value="${esc(s.n)}" placeholder="Ex.: Mercearia da Ana">
+<label>WhatsApp (com código do país, só números)</label><input id="w" value="${esc(s.w)}" inputmode="numeric" placeholder="Ex.: 5511999999999 ou 258841234567">
+<div class="row"><div><label>Moeda</label><select id="c">${Object.keys(CUR).map(k=>`<option ${k===s.c?'selected':''}>${k}</option>`).join('')}</select></div>
+<div><label>Taxa de entrega</label><input id="fee" type="number" step="0.01" value="${s.fee||0}"></div></div>
+<label>Descrição curta</label><input id="d" value="${esc(s.d)}" placeholder="O que vende, horário, zona de entrega">
+<label>Logo (link de imagem, opcional)</label><input id="l" value="${esc(s.l)}" placeholder="https://...">
+<div class="row" style="margin-top:10px"><label style="margin:0"><input type="checkbox" id="del" ${s.del?'checked':''} style="width:auto"> Faz entrega</label>
+<label style="margin:0"><input type="checkbox" id="pk" ${s.pk?'checked':''} style="width:auto"> Levantamento na loja</label></div>
+</div>
+<div class="card" style="margin-top:14px"><h3>Produtos (${s.p.length})</h3>
+<div id="plist">${s.p.map(p=>`<div class="li"><span>${esc(p.e||'📦')} ${esc(p.n)}<br><small class="muted">${fmt(p.pr,s.c)}</small></span><button class="x" data-del="${p.i}">Remover</button></div>`).join('')||'<p class="muted">Ainda sem produtos.</p>'}</div>
+<label>Nome do produto</label><input id="pn">
+<div class="row"><div><label>Preço</label><input id="pp" type="number" step="0.01"></div><div><label>Emoji</label><input id="pe" placeholder="📦" maxlength="4"></div></div>
+<label>Foto (link, opcional)</label><input id="pf" placeholder="https://...">
+<label>Descrição (opcional)</label><input id="pd">
+<button class="btn o" id="add" style="margin-top:12px">+ Adicionar produto</button></div>
+<button class="btn" id="sv" style="margin-top:14px;width:100%">Guardar loja</button>
+${link?`<div class="card" style="margin-top:14px"><h3>Link da sua loja</h3><div class="copy" id="lk">${esc(link)}</div>
+<div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar link</button><a class="btn s o" href="${esc(link)}">Abrir loja</a>
+<a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Veja a nossa loja e faça o seu pedido: '+link)}">Partilhar no WhatsApp</a></div>
+<p class="muted" style="font-size:13px">Sempre que alterar produtos, guarde e partilhe o link novo.</p></div>`:''}
+${SUPPORT_WA?`<p style="text-align:center"><a href="https://wa.me/${SUPPORT_WA}">Precisa de ajuda? Fale connosco</a></p>`:''}`;
+ const read=()=>{s.n=$('#n').value.trim();s.w=$('#w').value.replace(/\D/g,'');s.c=$('#c').value;s.fee=+$('#fee').value||0;s.d=$('#d').value.trim();s.l=$('#l').value.trim();s.del=$('#del').checked?1:0;s.pk=$('#pk').checked?1:0;};
+ $('#add').onclick=()=>{read();const n=$('#pn').value.trim(),pr=parseFloat($('#pp').value);if(!n||!(pr>=0))return alert('Preencha nome e preço.');
+  s.p.push({i:uid(),n,pr,e:$('#pe').value.trim(),f:$('#pf').value.trim(),ds:$('#pd').value.trim()});save(s);panel();};
+ app.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{read();s.p=s.p.filter(p=>p.i!==b.dataset.del);save(s);panel();});
+ $('#sv').onclick=()=>{read();if(!s.n||s.w.length<8)return alert('Preencha o nome e um WhatsApp válido.');s.t0=s.t0||Date.now();save(s);panel();};
+ const cp=$('#cp');if(cp)cp.onclick=()=>{navigator.clipboard.writeText(link).then(()=>cp.textContent='Copiado ✓')};
+}
+function strip(s){const o={n:s.n,w:s.w,c:s.c,d:s.d,l:s.l,del:s.del,pk:s.pk,fee:s.fee,p:s.p.map(p=>({i:p.i,n:p.n,pr:p.pr,e:p.e,f:p.f,ds:p.ds}))};return o;}
+
+/* ====== STOREFRONT ====== */
+let cart={};
+function store(s,demo){cart=JSON.parse(sessionStorage.getItem('fc_cart_'+s.n)||'{}');
+ const draw=()=>{sessionStorage.setItem('fc_cart_'+s.n,JSON.stringify(cart));
+  const items=s.p.filter(p=>cart[p.i]);const sub=items.reduce((a,p)=>a+p.pr*cart[p.i],0);const count=items.reduce((a,p)=>a+cart[p.i],0);
+  app.innerHTML=`${demo?'<div class="banner">Esta é uma loja de exemplo. <a href="#/painel">Crie a sua grátis →</a></div>':''}
+<div class="storehead">${s.l?`<img src="${esc(s.l)}" alt="">`:`<div class="ph" style="width:64px;font-size:30px">🛍️</div>`}<div><h1 style="margin:0">${esc(s.n)}</h1><div class="muted">${esc(s.d)}</div></div></div>
+<input id="q" placeholder="Procurar produto..." style="margin-bottom:14px">
+<div class="grid" id="g">${s.p.map(p=>`<div class="card prod" data-n="${esc(p.n.toLowerCase())}">${p.f?`<img src="${esc(p.f)}" alt="${esc(p.n)}" loading="lazy">`:`<div class="ph">${esc(p.e||'📦')}</div>`}
+<h3>${esc(p.n)}</h3>${p.ds?`<div class="muted" style="font-size:14px">${esc(p.ds)}</div>`:''}
+<div class="row" style="margin-top:8px"><span class="price">${fmt(p.pr,s.c)}</span>
+${cart[p.i]?`<span class="qty" style="flex:0"><button data-m="${p.i}">−</button><b>${cart[p.i]}</b><button data-p="${p.i}">+</button></span>`:`<button class="btn s" data-p="${p.i}" style="flex:0">Adicionar</button>`}</div></div>`).join('')||'<p class="muted">Esta loja ainda não tem produtos.</p>'}</div>
+<div style="height:70px"></div>
+${count?`<div class="cartbar" id="cb"><span>🛒 ${count} item(s)</span><span>${fmt(sub,s.c)} · Finalizar →</span></div>`:''}`;
+  app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{cart[b.dataset.p]=(cart[b.dataset.p]||0)+1;draw()});
+  app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{cart[b.dataset.m]--;if(cart[b.dataset.m]<=0)delete cart[b.dataset.m];draw()});
+  $('#q').oninput=e=>{const v=e.target.value.toLowerCase();app.querySelectorAll('#g .prod').forEach(c=>c.classList.toggle('hide',!c.dataset.n.includes(v)))};
+  const cb=$('#cb');if(cb)cb.onclick=()=>checkout(s,draw);};
+ draw();}
+function checkout(s,back){const items=s.p.filter(p=>cart[p.i]);const sub=items.reduce((a,p)=>a+p.pr*cart[p.i],0);
+ const modes=[s.del?'entrega':null,s.pk?'levantamento':null].filter(Boolean);
+ app.innerHTML=`<button class="btn s o" id="bk">← Voltar</button><h1>Finalizar pedido</h1>
+<div class="card">${items.map(p=>`<div class="li"><span>${cart[p.i]}× ${esc(p.n)}</span><b>${fmt(p.pr*cart[p.i],s.c)}</b></div>`).join('')}
+<div class="li"><span>Subtotal</span><b>${fmt(sub,s.c)}</b></div><div class="li" id="feeRow"></div><div class="li"><span><b>Total</b></span><b id="tot"></b></div></div>
+<div class="card" style="margin-top:14px"><label>O seu nome</label><input id="cn">
+<label>Como quer receber?</label><select id="md">${modes.map(m=>`<option value="${m}">${m==='entrega'?'Entrega':'Levantamento na loja'}</option>`).join('')}</select>
+<div id="adw"><label>Endereço de entrega</label><textarea id="ad" rows="2"></textarea></div>
+<label>Observações (opcional)</label><input id="ob"></div>
+<button class="btn" id="go" style="margin-top:14px;width:100%">Enviar pedido pelo WhatsApp</button>`;
+ const upd=()=>{const del=$('#md').value==='entrega';const fee=del?(s.fee||0):0;$('#adw').classList.toggle('hide',!del);
+  $('#feeRow').innerHTML=`<span>${del?'Entrega':'Levantamento'}</span><b>${fee?fmt(fee,s.c):'Grátis'}</b>`;$('#tot').textContent=fmt(sub+fee,s.c);return fee;};
+ $('#md').onchange=upd;upd();$('#bk').onclick=back;
+ $('#go').onclick=()=>{const name=$('#cn').value.trim(),md=$('#md').value,ad=$('#ad').value.trim();if(!name)return alert('Escreva o seu nome.');if(md==='entrega'&&!ad)return alert('Escreva o endereço.');
+  const fee=upd();const lines=['*Novo pedido — '+s.n+'*','',...items.map(p=>`• ${cart[p.i]}× ${p.n} — ${fmt(p.pr*cart[p.i],s.c)}`),'',`Subtotal: ${fmt(sub,s.c)}`,md==='entrega'?`Entrega: ${fmt(fee,s.c)}`:'Levantamento na loja',`*Total: ${fmt(sub+fee,s.c)}*`,'',`Nome: ${name}`,md==='entrega'?`Endereço: ${ad}`:'',$('#ob').value.trim()?`Obs.: ${$('#ob').value.trim()}`:'','','Pedido feito pela loja Fumacraft'].filter((l,i,a)=>l!==''||a[i-1]!=='');
+  cart={};sessionStorage.removeItem('fc_cart_'+s.n);location.href='https://wa.me/'+s.w+'?text='+encodeURIComponent(lines.join('\n'));};
+}
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+route();
+</script>
+</body>
+</html>
