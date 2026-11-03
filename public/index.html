@@ -24,7 +24,7 @@ main{max-width:1000px;margin:0 auto;padding:16px}
 .btn:disabled{opacity:.6}.btn.o{background:#fff;color:var(--g);border:2px solid var(--g)}.btn.s{padding:8px 14px;font-size:14px}.btn.y{background:var(--y);color:#222}.btn.w{width:100%}.btn.r{background:#fff;color:#b3261e;border:1px solid #f0c9c6}
 .hero{text-align:center;padding:36px 8px 26px}.hero h1{font-size:clamp(30px,7vw,52px);margin:0 0 12px;line-height:1.08;letter-spacing:-.5px}.hero h1 span{color:var(--g)}
 .hero p{color:var(--m);font-size:18px;max-width:640px;margin:0 auto 22px}
-.hero.bg{position:relative;overflow:hidden;border-radius:22px;margin:10px 0 18px;padding:48px 16px 34px;color:#fff;background:#111 url(/hero.webp) center/cover no-repeat}
+.hero.bg{position:relative;overflow:hidden;border-radius:22px;margin:10px 0 18px;padding:48px 16px 34px;color:#fff;background:linear-gradient(135deg,#10251b,#123d2b 55%,#0b1e16)}
 .hero.bg:before{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.55),rgba(0,0,0,.72))}
 .hero.bg>*{position:relative}.hero.bg p{color:#eee}.hero.bg h1{text-shadow:0 2px 12px rgba(0,0,0,.5)}.hero.bg h1 span{color:#ffc21a}
 .hero.bg .btn.o{background:rgba(255,255,255,.12);color:#fff;border-color:#fff}
@@ -62,6 +62,25 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--g);border-color:
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eee;color:#555}.badge.on{background:var(--g2);color:var(--g1)}
 details{background:#fff;border:1px solid var(--b);border-radius:14px;padding:12px 14px;margin:8px 0}summary{font-weight:700;cursor:pointer}
 .spin{width:28px;height:28px;border:3px solid var(--g2);border-top-color:var(--g);border-radius:50%;animation:s 1s linear infinite;margin:40px auto}@keyframes s{to{transform:rotate(360deg)}}
+
+/* Homepage showcase for every small-business category */
+.choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.choice-card{display:block;text-align:left;text-decoration:none;color:var(--t);background:#fff;border:1px solid var(--b);border-radius:18px;padding:18px;box-shadow:var(--sh)}
+.choice-card strong{display:block;font-size:17px;margin:6px 0}.choice-card small{display:block;color:var(--m);font-size:13px}
+.choice-card.primary{background:var(--g);color:#fff;border-color:var(--g)}.choice-card.primary small{color:#e8f5ee}
+.hero-layout{display:grid;grid-template-columns:1.05fr .95fr;gap:20px;align-items:center;text-align:left;max-width:1050px;margin:auto}
+.hero-copy{text-align:left}.hero-copy p{margin:0 0 22px}.hero-photo{width:100%;height:280px;object-fit:cover;border-radius:20px;border:4px solid rgba(255,255,255,.18);box-shadow:0 14px 36px rgba(0,0,0,.25)}
+.demo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.chat-demo{background:#e9f5ed;border-radius:18px;padding:14px;border:1px solid #cfe3d5}
+.chat-top{font-weight:800;padding-bottom:10px;border-bottom:1px solid #cbded0;margin-bottom:10px}
+.bubble{max-width:90%;padding:10px 12px;border-radius:14px;margin:8px 0;font-size:14px;box-shadow:0 1px 2px #0001}
+.bubble.customer{background:#fff;border-top-left-radius:4px}.bubble.seller{background:#d7f8c6;margin-left:auto;border-top-right-radius:4px}
+.demo-note{font-size:12px;color:var(--m);margin-top:8px}
+.category-card{display:flex;align-items:center;gap:12px}.category-icon{width:48px;height:48px;display:grid;place-items:center;background:var(--g2);border-radius:14px;font-size:25px;flex:0 0 auto}
+.feature-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.feature-list .card{display:flex;gap:10px;align-items:flex-start}
+@media(max-width:680px){.hero-layout{grid-template-columns:1fr}.hero-copy{text-align:center}.hero-copy p{margin-left:auto;margin-right:auto}.hero-photo{height:210px}.choice-grid{grid-template-columns:1fr 1fr}.hero.bg{padding:30px 14px 24px}}
+
 </style>
 </head>
 <body>
@@ -115,24 +134,102 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
  return loadStore(p);}
 
 /* ===== LANDING ===== */
-function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minutos';app.innerHTML=`
-<section class="hero bg"><span class="pill">✨ 100% grátis durante o lançamento</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
-<p>Fotos dos produtos, carrinho e pedidos que chegam organizados no seu WhatsApp, com itens, total, nome e endereço do cliente.</p>
-<a class="btn y w" href="/explorar" data-l style="max-width:460px;margin:0 auto 14px;font-size:20px;padding:20px;display:flex">🔎 Explorar lojas e produtos</a>
-<div class="row" style="justify-content:center;max-width:460px;margin:0 auto"><a class="btn" href="/entrar" data-l>Criar a minha loja</a><a class="btn o" href="/exemplo" data-l>Ver exemplo</a></div></section>
-<div class="grid steps">
-<div class="card"><b class="n">1</b><h3>Crie a loja</h3><p class="muted">Nome, logo, capa e o seu WhatsApp. Escolha a sua moeda: real, euro, kwanza, metical, dólar…</p></div>
-<div class="card"><b class="n">2</b><h3>Fotografe os produtos</h3><p class="muted">Carregue fotos direto do telemóvel, com preço e descrição.</p></div>
-<div class="card"><b class="n">3</b><h3>Partilhe o link</h3><p class="muted"><span style="white-space:nowrap">fumacraft.pages.dev/a-sua-loja</span> no Status, Instagram, TikTok e grupos.</p></div>
-<div class="card"><b class="n">4</b><h3>Receba pedidos</h3><p class="muted">O cliente monta o carrinho e o pedido chega pronto no WhatsApp. Sem caderno, sem confusão.</p></div></div>
-<h2>Para quem vende pelo WhatsApp</h2>
-<div class="grid g3"><div class="card">🛒 <b>Mercearias</b></div><div class="card">🍔 <b>Restaurantes e lanches</b></div><div class="card">👗 <b>Roupa e calçado</b></div><div class="card">💄 <b>Beleza e cosméticos</b></div><div class="card">🎂 <b>Bolos e doces</b></div><div class="card">📱 <b>Eletrónicos</b></div></div>
-<h2>Perguntas frequentes</h2>
-<details><summary>Preciso de cartão ou pagar para usar?</summary><p class="muted">Não. Durante o lançamento, criar e utilizar a sua loja é totalmente grátis.</p></details>
-<details><summary>Os clientes precisam de instalar alguma coisa?</summary><p class="muted">Não. Abrem o link no navegador, escolhem os produtos e o pedido vai para o seu WhatsApp.</p></details>
-<details><summary>Funciona no meu país?</summary><p class="muted">Sim. Brasil, Portugal, Angola, Moçambique, Cabo Verde e muitos outros, com a sua moeda.</p></details>
+function landing(){document.title='Fumacraft — A tua loja online começa aqui';app.innerHTML=`
+<section class="hero bg">
+ <div class="hero-layout">
+  <div class="hero-copy">
+   <span class="pill">✨ 100% grátis durante o lançamento</span>
+   <h1>A tua loja online começa <span> aqui</span></h1>
+   <p>Cria uma página profissional para os teus produtos ou serviços. Recebe visitantes, apresenta o que vendes e transforma o interesse em pedidos e marcações pelo WhatsApp.</p>
+   <div class="row" style="justify-content:flex-start;max-width:480px;margin:0 auto 12px">
+    <a class="btn y" href="/entrar" data-l>🚀 Criar a minha loja</a>
+    <a class="btn o" href="/exemplo" data-l>Ver demonstração</a>
+   </div>
+   <div class="small" style="color:#e8f5ee">Sem programação · Funciona no telemóvel · Link para partilhar</div>
+  </div>
+  <img class="hero-photo" src="https://static.tildacdn.com/tild3061-3062-4362-b739-306332656532/pics.png" alt="Exemplos de pequenos negócios: loja, barbearia e comércio">
+ </div>
+</section>
 
-<div style="text-align:center;margin:30px 0"><a class="btn" href="/entrar" data-l>Começar grátis agora</a></div>`}
+<h2 style="text-align:center;margin-top:22px">O que procuras fazer hoje?</h2>
+<div class="choice-grid">
+ <a class="choice-card" href="/explorar" data-l><span style="font-size:28px">🛍️</span><strong>Quero comprar ou encontrar um serviço</strong><small>Explorar lojas, produtos, serviços e contactos.</small></a>
+ <a class="choice-card primary" href="/entrar" data-l><span style="font-size:28px">🏪</span><strong>Quero criar a minha loja</strong><small>Apresentar o meu negócio e receber clientes.</small></a>
+</div>
+
+<h2>Uma plataforma para vários tipos de pequenos negócios</h2>
+<p class="muted">Não precisas de ter um restaurante. O Fumacraft serve para quem vende produtos, presta serviços ou trabalha com marcações.</p>
+<div class="grid g3">
+ <div class="card category-card"><span class="category-icon">💈</span><div><b>Barbearias e salões</b><div class="small muted">Mostrar cortes, preços e receber pedidos de marcação.</div></div></div>
+ <div class="card category-card"><span class="category-icon">👗</span><div><b>Roupa e calçado</b><div class="small muted">Catálogo com fotos, tamanhos, cores e preços.</div></div></div>
+ <div class="card category-card"><span class="category-icon">💄</span><div><b>Perfumes e cosméticos</b><div class="small muted">Exibir produtos, conjuntos e promoções.</div></div></div>
+ <div class="card category-card"><span class="category-icon">🍔</span><div><b>Restaurantes e pastelarias</b><div class="small muted">Menus, extras, quantidades e encomendas.</div></div></div>
+ <div class="card category-card"><span class="category-icon">🩺</span><div><b>Clínicas e profissionais</b><div class="small muted">Apresentar serviços e receber pedidos de contacto.</div></div></div>
+ <div class="card category-card"><span class="category-icon">📱</span><div><b>Electrónica e acessórios</b><div class="small muted">Produtos, características e pedidos de compra.</div></div></div>
+ <div class="card category-card"><span class="category-icon">🌸</span><div><b>Floristas e presentes</b><div class="small muted">Catálogos visuais e encomendas personalizadas.</div></div></div>
+ <div class="card category-card"><span class="category-icon">🧹</span><div><b>Serviços domésticos</b><div class="small muted">Explicar serviços e combinar datas pelo WhatsApp.</div></div></div>
+ <div class="card category-card"><span class="category-icon">🛒</span><div><b>Mercearias e lojas variadas</b><div class="small muted">Organizar artigos por categorias e preços.</div></div></div>
+</div>
+
+<h2>Como o teu negócio recebe clientes</h2>
+<div class="grid steps">
+ <div class="card"><b class="n">1</b><h3>Cria a tua página</h3><p class="muted">Adiciona nome, descrição, logótipo, capa, localização e WhatsApp.</p></div>
+ <div class="card"><b class="n">2</b><h3>Mostra produtos ou serviços</h3><p class="muted">Publica fotos, preços, detalhes, categorias e opções.</p></div>
+ <div class="card"><b class="n">3</b><h3>Partilha o teu endereço</h3><p class="muted">Coloca o link no WhatsApp, Facebook, Instagram, TikTok e cartões digitais. Pessoas de qualquer lugar podem abrir a tua página.</p></div>
+ <div class="card"><b class="n">4</b><h3>Conversa e fecha a venda</h3><p class="muted">O cliente escolhe o que pretende e segue para o teu WhatsApp com a mensagem preparada para continuares o atendimento.</p></div>
+</div>
+
+<h2>Vê como a conversa pode acontecer no WhatsApp</h2>
+<p class="muted">Exemplos ilustrativos de mensagens. O cliente é encaminhado para o WhatsApp do negócio; o vendedor responde e confirma disponibilidade, preço e entrega ou marcação.</p>
+<div class="demo-grid">
+ <div class="chat-demo">
+  <div class="chat-top">🟢 Exemplo — Loja de roupa</div>
+  <div class="bubble customer">Olá! Vi a camisa azul na vossa loja Fumacraft. Ainda têm tamanho M?</div>
+  <div class="bubble seller">Olá! 😊 Sim, temos tamanho M. Queres reservar?</div>
+  <div class="bubble customer">Sim, por favor. Posso levantar amanhã?</div>
+  <div class="bubble seller">Claro! Enviamos a localização e confirmamos a reserva por aqui.</div>
+  <div class="demo-note">Conversa de demonstração — não é uma mensagem real.</div>
+ </div>
+ <div class="chat-demo">
+  <div class="chat-top">🟢 Exemplo — Barbearia</div>
+  <div class="bubble customer">Bom dia. Gostava de marcar um corte para sábado às 10h.</div>
+  <div class="bubble seller">Bom dia! Obrigado pelo contacto. Vou confirmar a disponibilidade para esse horário.</div>
+  <div class="bubble customer">Perfeito. Quanto custa o corte?</div>
+  <div class="bubble seller">O corte custa 200 MT. Já te confirmo a hora.</div>
+  <div class="demo-note">A marcação é combinada diretamente com o profissional no WhatsApp.</div>
+ </div>
+ <div class="chat-demo">
+  <div class="chat-top">🟢 Exemplo — Pedido de produtos</div>
+  <div class="bubble customer">Olá! Quero 2 perfumes e 1 creme. Podem entregar na Matola?</div>
+  <div class="bubble seller">Olá! Sim, podemos verificar a zona e calcular a entrega. Envia-nos a tua localização.</div>
+  <div class="bubble customer">Já enviei. Obrigado!</div>
+  <div class="demo-note">O catálogo e o carrinho ajudam o cliente a preparar o pedido antes de conversar.</div>
+ </div>
+</div>
+
+<h2>O que vais ter na tua loja Fumacraft</h2>
+<div class="feature-list">
+ <div class="card"><span>🖼️</span><div><b>Vitrine com a tua marca</b><div class="small muted">Logótipo, capa, descrição e link próprio.</div></div></div>
+ <div class="card"><span>📸</span><div><b>Catálogo visual</b><div class="small muted">Fotos, preços, categorias e descrições.</div></div></div>
+ <div class="card"><span>🛒</span><div><b>Carrinho e resumo do pedido</b><div class="small muted">O cliente revê os artigos antes de enviar.</div></div></div>
+ <div class="card"><span>💬</span><div><b>Contacto pelo WhatsApp</b><div class="small muted">A conversa abre no número que configuraste.</div></div></div>
+ <div class="card"><span>📱</span><div><b>Partilha simples</b><div class="small muted">Divulga o link nas redes sociais e grupos.</div></div></div>
+ <div class="card"><span>🌍</span><div><b>Clientes de vários lugares</b><div class="small muted">A página pode ser aberta por pessoas dentro e fora do teu país.</div></div></div>
+</div>
+
+<div class="card" style="margin-top:24px;text-align:center;background:var(--g2);border-color:#bfe3cf">
+ <h2 style="margin:4px 0 8px">O teu negócio merece estar online.</h2>
+ <p class="muted">Começa gratuitamente e cria uma página para os teus produtos ou serviços.</p>
+ <div class="row" style="justify-content:center"><a class="btn" href="/entrar" data-l>🏪 Criar a minha loja</a><a class="btn o" href="/explorar" data-l>🛍️ Explorar lojas</a></div>
+</div>
+
+<h2>Perguntas frequentes</h2>
+<details><summary>O Fumacraft é só para restaurantes?</summary><p class="muted">Não. Pode ser usado por lojas de roupa, barbearias, salões, perfumarias, clínicas, mercearias, profissionais independentes e muitos outros pequenos negócios.</p></details>
+<details><summary>O cliente precisa de instalar alguma aplicação?</summary><p class="muted">Não. Pode abrir o link da tua loja no navegador do telemóvel ou computador.</p></details>
+<details><summary>Como funciona o WhatsApp?</summary><p class="muted">O cliente escolhe produtos e prepara o pedido. Ao continuar, o WhatsApp abre com a mensagem e os detalhes preenchidos. Tu recebes a conversa e confirmas os detalhes diretamente com o cliente.</p></details>
+<details><summary>Posso usar para marcações?</summary><p class="muted">Podes apresentar serviços e receber pedidos de marcação pelo WhatsApp. A confirmação de horários é combinada diretamente com o cliente; o Fumacraft ainda não tem calendário automático de reservas.</p></details>
+<details><summary>O Fumacraft está gratuito?</summary><p class="muted">Sim. Durante o lançamento, criar e utilizar a loja é totalmente grátis.</p></details>
+`}
 function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">${PRICE}<span style="font-size:16px;font-weight:600">/mês</span></div>
 <ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Link próprio da loja</li><li>Logo e capa personalizadas</li><li>Entrega ou levantamento</li><li>Qualquer moeda</li></ul>
 <a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Em Moçambique: ${PAGAR_PRICE} por 30 dias com M-Pesa ou eMola. Sem fidelização.</p></div>`}
