@@ -4,7 +4,7 @@
 
 - A plataforma começa 100% gratuita para clientes e vendedores.
 - Não existe período experimental obrigatório, mensalidade, comissão nem bloqueio por falta de pagamento.
-- O preço futuro definido pelo proprietário é US$ 9,99 por mês. Este valor é confidencial e deve aparecer apenas no painel Admin enquanto a monetização estiver desligada.
+- O preço futuro de US$ 9,99 por mês é confidencial e deve aparecer apenas no painel Admin enquanto a monetização estiver desligada.
 - O interruptor global do Admin controla apenas a preparação/apresentação do plano futuro. Não pode iniciar cobranças automaticamente.
 - A cobrança internacional em USD será uma fase separada, sujeita a decisão explícita do proprietário e testes próprios.
 
@@ -16,24 +16,29 @@ A aplicação principal está concentrada num único `index.html`, com HTML, CSS
 
 ```text
 /
-  index.html                 entrada HTML e metadados
+  public/
+    index.html                 aplicação e entrada HTML
+    manifest.json              configuração PWA
+    sw.js                      service worker
+    icon-192.png
+    icon-512.png
+    icon-maskable.png
+    icon.svg
   assets/
-    css/                     estilos globais e componentes
+    css/                       estilos globais e componentes
     js/
-      app.js                 entrada temporária da aplicação
-      core/                  configuração, rotas e utilitários
-      services/              autenticação e acesso ao Supabase
+      app.js                   entrada temporária da aplicação
+      core/                    configuração, rotas e utilitários
+      services/                autenticação e acesso ao Supabase
       features/
-        public/              início, explorar e páginas de loja
-        seller/              painel do vendedor, catálogo e pedidos
-        admin/               administração e controlo do plano
+        public/                início, explorar e páginas de loja
+        seller/                painel do vendedor, catálogo e pedidos
+        admin/                 administração e controlo do plano
   docs/
-    ORGANIZACAO-PROFUNDA.md  decisões e fases do projeto
-    sql/                    atualizações do banco versionadas
-  functions/                 Edge Functions Supabase
-  schema.sql                 esquema de referência acumulado
-  manifest.json              configuração PWA
-  sw.js                      service worker e notificações
+    ORGANIZACAO-PROFUNDA.md    decisões e fases do projeto
+    sql/                       atualizações do banco versionadas
+  functions/                   Edge Functions Supabase (runtime Deno)
+  schema.sql                   esquema de referência acumulado
 ```
 
 A migração será gradual: preservar URLs públicos existentes, separar primeiro os ficheiros estáticos e depois dividir o JavaScript por responsabilidade. Não fazer uma reescrita total de uma só vez.
@@ -78,6 +83,13 @@ A migração será gradual: preservar URLs públicos existentes, separar primeir
 - Integrar checkout internacional em USD e webhooks idempotentes.
 - Só depois de testes completos, o administrador decide quando iniciar cobranças.
 - O botão de desligar deve continuar disponível como mecanismo de emergência.
+
+## Publicação Cloudflare Pages
+
+- O projeto Pages `fumacraft` publica apenas o frontend que está dentro de `public/`.
+- Configuração do Pages: raiz do projeto `/public`, diretório de saída `.` e comando de construção vazio.
+- A pasta `functions/` contém Edge Functions do Supabase que usam Deno. Deve permanecer fora da raiz do projeto Pages; não é uma pasta de Pages Functions.
+- Não usar `npx wrangler deploy` para este site. Esse comando tenta publicar um Worker; a publicação do frontend deve ser feita pelo projeto Cloudflare Pages ligado à branch `main`.
 
 ## Critérios para considerar a Fase 1 concluída
 
