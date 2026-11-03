@@ -223,21 +223,19 @@ function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',categ
 async function admin(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
  const r=await sb.rpc('admin_stores');if(r.error){app.innerHTML='<div class="card" style="text-align:center;margin-top:30px"><h2>Acesso restrito</h2><p class="muted">Esta área é só para o administrador.</p></div>';return}
  const st=r.data||[],u=(await sb.rpc('admin_users_count')).data||0;
- const paid=st.filter(isPaid),trial=st.filter(s=>!isPaid(s)&&daysLeft(s)>0),exp=st.filter(s=>!isPaid(s)&&daysLeft(s)===0);
  const k=(t,v,c='')=>`<div class="card" style="text-align:center"><div class="muted small">${t}</div><div style="font-size:28px;font-weight:900;${c}">${v}</div></div>`;
- const draw=(q='',f='all')=>{const list=st.filter(s=>(f==='all'||(f==='paid'&&isPaid(s))||(f==='trial'&&trial.includes(s))||(f==='exp'&&exp.includes(s)))&&(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
+ const draw=(q='',f='all')=>{const list=st.filter(s=>(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
  app.innerHTML=`<h1 style="margin:6px 0">Painel Admin</h1><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
-${k('Receita mensal',fmt(paid.length*640,'MZN'),'color:var(--g)')}${k('Assinantes',paid.length)}${k('Em teste',trial.length)}${k('Em pausa',exp.length,'color:#b3261e')}${k('Lojas',st.length)}${k('Contas',u)}</div>
-<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px">${[['all','Todas'],['paid','Assinantes'],['trial','Em teste'],['exp','Em pausa']].map(([v,t])=>`<option value="${v}" ${v===f?'selected':''}>${t}</option>`).join('')}</select></div>
-${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge ${s.plan==='active'?'on':''}">${isPaid(s)?'Pago: '+paidLeft(s)+'d':d>0?'Teste: '+d+'d':'Em pausa'}</span><br>
+${k('Modo de lançamento','100% grátis','color:var(--g)')}${k('Lojas',st.length)}${k('Contas',u)}</div>
+<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px"><option value="all">Todas as lojas</option></select></div>
+${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge on">Loja ativa · grátis</span><br>
 <span class="small muted">${esc(s.email)} · ${s.products} produtos · ${s.currency} · desde ${new Date(s.created_at).toLocaleDateString('pt-PT')}</span></div></div>
 <div class="row" style="margin-top:10px"><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>
-<button class="btn s" data-pl="30" data-id="${s.id}">+30 dias</button>${isPaid(s)?`<button class="btn s r" data-pl="0" data-id="${s.id}">Desativar</button>`:''}</div>
+</div>
 <details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">🗑️ Eliminar…</summary><div class="row" style="margin-top:8px">
 <button class="btn s o" data-dx="orders30" data-id="${s.id}">Pedidos +30 dias</button><button class="btn s o" data-dx="ordersall" data-id="${s.id}">Todos os pedidos</button>
 <button class="btn s r" data-dx="store" data-id="${s.id}" data-n="${esc(s.name)}">Eliminar loja</button><button class="btn s r" data-dx="user" data-id="${s.id}" data-n="${esc(s.email)}">Eliminar conta</button></div></details></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
  const aq=$('#aq');aq.oninput=()=>{const pos=aq.selectionStart;draw(aq.value,$('#af').value);const n=$('#aq');n.focus();n.setSelectionRange(pos,pos)};$('#af').onchange=()=>draw($('#aq').value,$('#af').value);
- app.querySelectorAll('[data-pl]').forEach(b=>b.onclick=async()=>{b.disabled=true;const e=(await sb.rpc('admin_add_days',{sid:b.dataset.id,d:+b.dataset.pl})).error;if(e)return toast(e.message);toast('Atualizado');admin()});
  app.querySelectorAll('[data-dx]').forEach(b=>b.onclick=async()=>{const t=b.dataset.dx,id=b.dataset.id,n=b.dataset.n||'';
   const msg={orders30:'Apagar pedidos com mais de 30 dias desta loja?',ordersall:'Apagar TODOS os pedidos desta loja?',store:'Eliminar a loja "'+n+'", produtos e pedidos?',user:'Eliminar a conta '+n+' e tudo o que tem?'}[t];
   if(!confirm(msg+' Isto não pode ser desfeito.'))return;if((t==='store'||t==='user')&&prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;
