@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Fumacraft — Sua loja no WhatsApp em 5 minutos</title>
-<meta name="description" content="Crie a sua loja online grátis, partilhe um link e receba pedidos organizados direto no WhatsApp. 7 dias grátis.">
+<meta name="description" content="Crie a sua loja online grátis, partilhe um link e receba pedidos organizados direto no WhatsApp.">
 <meta property="og:title" content="Fumacraft — Sua loja no WhatsApp em 5 minutos">
-<meta property="og:description" content="Produtos com fotos, carrinho e pedidos direto no seu WhatsApp. Teste 7 dias grátis.">
+<meta property="og:description" content="Produtos com fotos, carrinho e pedidos direto no seu WhatsApp.">
 <meta name="theme-color" content="#0f7a4a">
 <link rel="manifest" href="/manifest.json">
 <link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,13 +67,13 @@ details{background:#fff;border:1px solid var(--b);border-radius:14px;padding:12p
 <body>
 <header><button class="back hide" id="bk" aria-label="Voltar">←</button><a class="logo" href="/" data-l><img src="/icon.svg" alt="">Fumacraft</a><a class="btn s o" id="hb" href="/painel" data-l>Minha loja</a></header>
 <main id="app"><div class="spin"></div></main>
-<footer id="ft">© Fumacraft · Lojas no WhatsApp para pequenos negócios · <a href="/precos" data-l>Preços</a></footer>
+<footer id="ft">© Fumacraft · Lojas online para pequenos negócios</footer>
 <script>
 /* ===== CONFIG ===== */
 const SB_URL='https://hqjmkdfbwdtxgifkenew.supabase.co';
 const SB_KEY='sb_publishable_8vh5KLV4daRsTSJNsL-rxQ_psAAMk0O';
-const PAGAR_URL='';const PAGAR_PRICE='640 MT';const CHECKOUT_URL_LS='https://fumacraft.lemonsqueezy.com/checkout/buy/62bcfc9c-c45b-4f99-aed1-9458e95aa3e1';
-const TRIAL_DAYS=7, PRICE='US$9,99';
+const BILLING_ENABLED=false; // Lançamento gratuito. Monetização futura: US$9.99/mês, apenas no Admin.
+const TRIAL_DAYS=0, PRICE='US$9.99';
 const RESERVED=['','admin','explorar','planos','entrar','painel','precos','exemplo','index.html','manifest.json','sw.js','icon.svg'];
 const CUR={BRL:'pt-BR',EUR:'pt-PT',AOA:'pt-AO',MZN:'pt-MZ',CVE:'pt-CV',USD:'en-US',GBP:'en-GB',NGN:'en-NG',KES:'en-KE',ZAR:'en-ZA',GHS:'en-GH'};
 /* ===== HELPERS ===== */
@@ -86,7 +86,7 @@ const toast=m=>{const t=document.createElement('div');t.className='toast';t.text
 const daysLeft=s=>Math.max(0,TRIAL_DAYS-Math.floor((Date.now()-new Date(s.trial_started))/864e5));
 const paidLeft=s=>s.paid_until?Math.max(0,Math.ceil((new Date(s.paid_until)-Date.now())/864e5)):0;
 const isPaid=s=>s.plan==='active'&&paidLeft(s)>0;
-const isLive=s=>isPaid(s)||daysLeft(s)>0;
+const isLive=s=>true; // Todas as lojas permanecem ativas durante o lançamento gratuito.
 const storeUrl=s=>location.origin+'/'+s.slug;
 function go(p){history.pushState({},'',p);route()}
 document.addEventListener('click',e=>{const a=e.target.closest('a[data-l]');if(a){e.preventDefault();go(a.getAttribute('href'))}});
@@ -110,13 +110,13 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
  $('#hb').classList.toggle('hide',isStore);if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
- if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos')return pricing();if(p==='admin')return admin();if(p==='explorar')return explore();if(p==='planos')return plans();
+ if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos'||p==='planos')return go(me?'/painel':'/');if(p==='admin')return admin();if(p==='explorar')return explore();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
 
 /* ===== LANDING ===== */
 function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minutos';app.innerHTML=`
-<section class="hero bg"><span class="pill">✨ ${TRIAL_DAYS} dias grátis · sem cartão</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
+<section class="hero bg"><span class="pill">✨ 100% grátis durante o lançamento</span><h1>A sua loja no <span>WhatsApp</span>,<br>pronta em 5 minutos</h1>
 <p>Fotos dos produtos, carrinho e pedidos que chegam organizados no seu WhatsApp, com itens, total, nome e endereço do cliente.</p>
 <a class="btn y w" href="/explorar" data-l style="max-width:460px;margin:0 auto 14px;font-size:20px;padding:20px;display:flex">🔎 Explorar lojas e produtos</a>
 <div class="row" style="justify-content:center;max-width:460px;margin:0 auto"><a class="btn" href="/entrar" data-l>Criar a minha loja</a><a class="btn o" href="/exemplo" data-l>Ver exemplo</a></div></section>
@@ -127,12 +127,11 @@ function landing(){document.title='Fumacraft — Sua loja no WhatsApp em 5 minut
 <div class="card"><b class="n">4</b><h3>Receba pedidos</h3><p class="muted">O cliente monta o carrinho e o pedido chega pronto no WhatsApp. Sem caderno, sem confusão.</p></div></div>
 <h2>Para quem vende pelo WhatsApp</h2>
 <div class="grid g3"><div class="card">🛒 <b>Mercearias</b></div><div class="card">🍔 <b>Restaurantes e lanches</b></div><div class="card">👗 <b>Roupa e calçado</b></div><div class="card">💄 <b>Beleza e cosméticos</b></div><div class="card">🎂 <b>Bolos e doces</b></div><div class="card">📱 <b>Eletrónicos</b></div></div>
-<h2 style="text-align:center">Preço simples</h2>${planCard()}
 <h2>Perguntas frequentes</h2>
-<details><summary>Preciso de cartão para testar?</summary><p class="muted">Não. Tem ${TRIAL_DAYS} dias grátis completos. Só paga se quiser continuar.</p></details>
+<details><summary>Preciso de cartão ou pagar para usar?</summary><p class="muted">Não. Durante o lançamento, criar e utilizar a sua loja é totalmente grátis.</p></details>
 <details><summary>Os clientes precisam de instalar alguma coisa?</summary><p class="muted">Não. Abrem o link no navegador, escolhem os produtos e o pedido vai para o seu WhatsApp.</p></details>
 <details><summary>Funciona no meu país?</summary><p class="muted">Sim. Brasil, Portugal, Angola, Moçambique, Cabo Verde e muitos outros, com a sua moeda.</p></details>
-<details><summary>Posso cancelar?</summary><p class="muted">Sim, a qualquer momento, sem multa.</p></details>
+
 <div style="text-align:center;margin:30px 0"><a class="btn" href="/entrar" data-l>Começar grátis agora</a></div>`}
 function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">${PRICE}<span style="font-size:16px;font-weight:600">/mês</span></div>
 <ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Link próprio da loja</li><li>Logo e capa personalizadas</li><li>Entrega ou levantamento</li><li>Qualquer moeda</li></ul>
@@ -145,7 +144,7 @@ function auth(mode='up'){if(me)return go('/painel');app.innerHTML=`<div class="c
 <h2 style="margin:6px 0">${mode==='up'?'Crie a sua loja grátis':'Bem-vindo de volta'}</h2>
 <label>Email</label><input id="em" type="email" autocomplete="email"><label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
 <button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
-${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':`<p class="small muted" style="text-align:center">${TRIAL_DAYS} dias grátis. Sem cartão.</p>`}</div>`;
+${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':`<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>`}</div>`;
  $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
  $('#ok').onclick=async()=>{const email=$('#em').value.trim(),password=$('#pw').value;if(!email||password.length<6)return toast('Email e senha (mín. 6)');
   $('#ok').disabled=true;const r=mode==='up'?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});$('#ok').disabled=false;
@@ -161,8 +160,7 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
  const left=daysLeft(s),url=storeUrl(s);
  const pl=paidLeft(s);
  app.innerHTML=`<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">${esc(s.name)}</h1><button class="btn s r" id="lo" style="flex:0">Sair</button></div>
-${isPaid(s)?`<div class="banner g">✅ Plano ativo: <b>${pl} dia(s)</b> restante(s). ${pl<=5?'<a class="btn s y" href="/planos" data-l>Renovar</a>':''}</div>`:`<div class="banner">${left>0?`🎁 Teste grátis: <b>${left} dia(s)</b> restante(s).`:'⏸️ O seu plano terminou e a loja está em pausa para os clientes.'} <a class="btn s y" href="/planos" data-l>Ver planos</a></div>`}
-<div class="row" style="margin:10px 0;flex-wrap:nowrap"><a class="btn s o" href="/planos" data-l>💳 Planos e pagamento</a></div>
+<div class="banner g">🎉 A sua loja está ativa. Durante o lançamento, o Fumacraft é 100% grátis.</div>
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
 <div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
@@ -194,7 +192,7 @@ function storeForm(s){const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'BRL
 <label>Descrição</label><textarea id="d" rows="2" placeholder="O que vende, horário, zonas de entrega">${esc(s.description)}</textarea>
 ${picker('lg','Logo',s.logo_url,false,'🏪')}${picker('cv','Foto de capa',s.cover_url,true,'🖼️')}
 <div class="row" style="margin-top:12px"><label style="margin:0;display:flex;gap:8px;align-items:center"><input type="checkbox" id="del" ${s.delivery?'checked':''} style="width:20px;height:20px"> Faz entrega</label><label style="margin:0;display:flex;gap:8px;align-items:center"><input type="checkbox" id="pk" ${s.pickup?'checked':''} style="width:20px;height:20px"> Levantamento</label></div>
-<button class="btn w" id="sv" style="margin-top:18px">${n?'Criar loja e começar teste grátis':'Guardar'}</button></div>`;
+<button class="btn w" id="sv" style="margin-top:18px">${n?'Criar loja grátis':'Guardar'}</button></div>`;
  let touched=!!s.slug;$('#sl').oninput=()=>touched=true;$('#n').oninput=()=>{if(!touched)$('#sl').value=slugify($('#n').value)};
  bindPicker('lg',f=>logo=f);bindPicker('cv',f=>cover=f);
  $('#sv').onclick=async()=>{const b=$('#sv');const o={name:$('#n').value.trim(),slug:slugify($('#sl').value||$('#n').value),whatsapp:$('#w').value.replace(/\D/g,''),currency:$('#c').value,delivery_fee:+$('#fee').value||0,description:$('#d').value.trim(),delivery:$('#del').checked,pickup:$('#pk').checked};
@@ -394,7 +392,7 @@ async function scanQR(cb){const md=document.createElement('div');md.className='m
 /* ===== EXPLORE ===== */
 async function explore(){document.title='Explorar lojas · Fumacraft';app.innerHTML='<div class="spin"></div>';
  const [{data:ss},{data:pp}]=await Promise.all([sb.from('stores').select('id,slug,name,description,logo_url,cover_url,currency,plan,trial_started,paid_until'),sb.from('products').select('id,name,price,photo_url,category,store_id').eq('active',true).limit(300)]);
- const st=(ss||[]).filter(isLive),byId=Object.fromEntries(st.map(s=>[s.id,s]));const ps=(pp||[]).filter(p=>byId[p.store_id]);
+ const st=(ss||[]),byId=Object.fromEntries(st.map(s=>[s.id,s]));const ps=(pp||[]).filter(p=>byId[p.store_id]);
  const mine=JSON.parse(localStorage.getItem('fc_orders')||'[]');let q='';
  const draw=()=>{const t=q.toLowerCase();const S=st.filter(s=>!t||(s.name+' '+(s.description||'')).toLowerCase().includes(t));const P=ps.filter(p=>!t||(p.name+' '+(p.category||'')).toLowerCase().includes(t));
   $('#er').innerHTML=`<h2>Lojas (${S.length})</h2><div class="grid p">${S.map(s=>`<a class="card prod" href="/${esc(s.slug)}" data-l style="text-decoration:none;color:inherit">${s.cover_url?`<img class="thumb" src="${esc(s.cover_url)}" loading="lazy" alt="">`:s.logo_url?`<img class="thumb" src="${esc(s.logo_url)}" loading="lazy" alt="">`:`<div class="thumb ph" style="font-size:34px">${esc(s.name.trim()[0].toUpperCase())}</div>`}<h3>${esc(s.name)}</h3>${s.description?`<div class="small muted">${esc(s.description.slice(0,70))}</div>`:''}</a>`).join('')||'<p class="muted">Nenhuma loja encontrada.</p>'}</div>
