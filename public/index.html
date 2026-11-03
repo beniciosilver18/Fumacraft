@@ -84,7 +84,7 @@ details{background:#fff;border:1px solid var(--b);border-radius:14px;padding:12p
 </style>
 </head>
 <body>
-<header><button class="back hide" id="bk" aria-label="Voltar">←</button><a class="logo" href="/" data-l><img src="/icon.svg" alt="">Fumacraft</a><a class="btn s o" id="hb" href="/painel" data-l>Minha loja</a></header>
+<header><button class="back hide" id="bk" aria-label="Voltar">←</button><a class="logo" href="/" data-l><img src="/icon.svg" alt="">Fumacraft</a><a class="btn s o" id="exploreNav" href="/explorar" data-l>Explorar</a><a class="btn s" id="hb" href="/painel" data-l>Sou vendedor</a></header>
 <main id="app"><div class="spin"></div></main>
 <footer id="ft">© Fumacraft · Lojas online para pequenos negócios</footer>
 <script>
@@ -128,7 +128,8 @@ sb.auth.onAuthStateChange((_e,s)=>{me=s?.user||null});
 function route(){document.querySelector('.logo').lastChild.textContent='Fumacraft';const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,''));window.scrollTo(0,0);
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
- $('#hb').classList.toggle('hide',isStore);if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
+ $('#hb').classList.toggle('hide',isStore);$('#exploreNav').classList.toggle('hide',isStore);$('#hb').textContent=me?'Minha loja':'Sou vendedor';
+ if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
  if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos'||p==='planos')return go(me?'/painel':'/');if(p==='admin')return admin();if(p==='explorar')return explore();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
@@ -236,19 +237,40 @@ function planCard(){return `<div class="card plan"><div class="muted">Plano Loja
 function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 
 /* ===== AUTH ===== */
-function auth(mode='up'){if(me)return go('/painel');app.innerHTML=`<div class="card" style="max-width:440px;margin:10px auto">
-<div class="tabs"><button class="${mode==='up'?'on':''}" id="tu">Criar conta</button><button class="${mode==='in'?'on':''}" id="ti">Entrar</button></div>
-<h2 style="margin:6px 0">${mode==='up'?'Crie a sua loja grátis':'Bem-vindo de volta'}</h2>
-<label>Email</label><input id="em" type="email" autocomplete="email"><label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
-<button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
-${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':`<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>`}</div>`;
+function auth(mode='up'){
+ if(me)return go('/painel');
+ app.innerHTML=`<div class="card" style="max-width:440px;margin:10px auto">
+ <div class="tabs"><button class="${mode==='up'?'on':''}" id="tu">Criar conta</button><button class="${mode==='in'?'on':''}" id="ti">Entrar</button></div>
+ <h2 style="margin:6px 0">${mode==='up'?'Crie a sua loja grátis':'Bem-vindo de volta'}</h2>
+ <p class="small muted">${mode==='up'?'Crie uma conta de vendedor para configurar e gerir a sua própria loja.':'Entre para gerir os seus produtos, serviços e pedidos.'}</p>
+ <button class="btn o w" id="gg" type="button">🌐 Continuar com Google</button>
+ <div class="small muted" style="text-align:center;margin:12px 0">ou use o seu email</div>
+ <label>Email</label><input id="em" type="email" autocomplete="email" placeholder="nome@email.com">
+ <label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
+ <button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
+ ${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':'<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>'}
+ <a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
  $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
- $('#ok').onclick=async()=>{const email=$('#em').value.trim(),password=$('#pw').value;if(!email||password.length<6)return toast('Email e senha (mín. 6)');
-  $('#ok').disabled=true;const r=mode==='up'?await sb.auth.signUp({email,password}):await sb.auth.signInWithPassword({email,password});$('#ok').disabled=false;
-  if(r.error)return toast(r.error.message.includes('Invalid')?'Email ou senha incorretos':r.error.message.includes('already')?'Este email já tem conta. Entre.':r.error.message);
-  me=r.data.user;go('/painel')};
- const fg=$('#fg');if(fg)fg.onclick=async e=>{e.preventDefault();const email=$('#em').value.trim();if(!email)return toast('Escreva o seu email');await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/painel'});toast('Enviámos um link para o seu email')};}
-
+ $('#gg').onclick=async()=>{const b=$('#gg');b.disabled=true;b.textContent='A abrir o Google…';
+  const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/painel'}});
+  if(error){b.disabled=false;b.textContent='🌐 Continuar com Google';toast(error.message.includes('provider is not enabled')?'O acesso Google ainda não está ativado nas definições de autenticação.':error.message)}};
+ $('#ok').onclick=async()=>{const email=$('#em').value.trim(),password=$('#pw').value;
+  if(!email||password.length<6)return toast('Introduza um email válido e uma senha com pelo menos 6 caracteres');
+  const b=$('#ok');b.disabled=true;b.textContent=mode==='up'?'A criar conta…':'A entrar…';
+  const r=mode==='up'?await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/painel'}}):await sb.auth.signInWithPassword({email,password});
+  b.disabled=false;b.textContent=mode==='up'?'Criar conta':'Entrar';
+  if(r.error){const message=r.error.message||'Não foi possível continuar';return toast(message.includes('Invalid login')?'Email ou senha incorretos':message.includes('already registered')?'Este email já tem uma conta. Entre.':message)}
+  if(!r.data.session){
+   if(mode==='up'){app.innerHTML=`<div class="card" style="max-width:440px;margin:24px auto;text-align:center"><div style="font-size:42px">📩</div><h2>Confirme o seu email</h2><p class="muted">A conta foi criada. Abra a mensagem enviada para <b>${esc(email)}</b> e confirme o endereço antes de entrar.</p><button class="btn w" id="backLogin">Já confirmei — entrar</button><a href="/" data-l class="btn o w" style="margin-top:8px">Voltar ao início</a></div>`;
+    $('#backLogin').onclick=()=>auth('in');return}
+   return toast('Não foi possível iniciar a sessão. Verifique o email e a senha.');
+  }
+  me=r.data.session.user;go('/painel');
+ };
+ const fg=$('#fg');if(fg)fg.onclick=async e=>{e.preventDefault();const email=$('#em').value.trim();if(!email)return toast('Escreva o seu email');
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/painel'});
+  if(error)return toast(error.message);toast('Enviámos um link para o seu email')};
+}
 /* ===== PANEL ===== */
 async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
  const {data:s}=await sb.from('stores').select('*').eq('owner',me.id).maybeSingle();
@@ -260,7 +282,7 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
 <div class="banner g">🎉 A sua loja está ativa. Durante o lançamento, o Fumacraft é 100% grátis.</div>
 <div class="card"><h3>🔗 Link da sua loja</h3><div class="copy">${esc(url.replace(/^https?:\/\//,''))}</div>
 <div class="row" style="margin-top:10px"><button class="btn s" id="cp">Copiar</button><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('🛍️ Faça o seu pedido na '+s.name+': '+url)}">Partilhar</a></div></div>
-<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
+<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between"><h3 style="flex:2">📦 Produtos e serviços (${ps.length})</h3><button class="btn s" id="np" style="flex:0">+ Novo</button></div>
 ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px">`:`<div class="thumb ph" style="width:52px;font-size:22px;flex:0 0 52px">${esc(p.name.trim()[0].toUpperCase())}</div>`}
 <div style="min-width:0"><b>${esc(p.name)}</b><br><span class="small muted">${fmt(p.price,s.currency)}</span> <span class="badge ${p.active?'on':''}">${p.active?'Visível':'Oculto'}</span></div></div>
 <button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
@@ -279,30 +301,46 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
  $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
  app.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>productForm(s,ps.find(p=>p.id===b.dataset.e)));}
 
-function storeForm(s){const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'BRL',description:'',logo_url:'',cover_url:'',delivery:true,pickup:true,delivery_fee:0};let logo=null,cover=null;
- history.replaceState({},'','/painel');
+function storeForm(s){
+ const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'MZN',description:'',logo_url:'',cover_url:'',delivery:true,pickup:true,delivery_fee:0};
+ const oldDelivery=s.delivery!==false,oldPickup=s.pickup!==false;
+ const mode=!oldDelivery&&!oldPickup?'booking':oldDelivery&&oldPickup?'both':oldDelivery?'delivery':'pickup';
+ let logo=null,cover=null;history.replaceState({},'','/painel');
  app.innerHTML=`<h1>${n?'Vamos criar a sua loja':'Dados da loja'}</h1><div class="card">
-<label>Nome da loja</label><input id="n" value="${esc(s.name)}" placeholder="Ex.: Mercearia da Ana">
-<label>Link da loja</label><div class="row" style="flex-wrap:nowrap;gap:4px"><span class="muted small" style="flex:0 0 auto">fumacraft.pages.dev/</span><input id="sl" value="${esc(s.slug)}" placeholder="mercearia-da-ana"></div>
-<label>WhatsApp (com código do país)</label><input id="w" value="${esc(s.whatsapp)}" inputmode="tel" placeholder="Ex.: 55 11 99999 9999 ou 258 84 123 4567">
-<div class="row"><div><label>Moeda</label><select id="c">${Object.keys(CUR).map(k=>`<option ${k===s.currency?'selected':''}>${k}</option>`).join('')}</select></div><div><label>Taxa de entrega</label><input id="fee" type="number" min="0" step="0.01" value="${s.delivery_fee||0}"></div></div>
-<label>Descrição</label><textarea id="d" rows="2" placeholder="O que vende, horário, zonas de entrega">${esc(s.description)}</textarea>
-${picker('lg','Logo',s.logo_url,false,'🏪')}${picker('cv','Foto de capa',s.cover_url,true,'🖼️')}
-<div class="row" style="margin-top:12px"><label style="margin:0;display:flex;gap:8px;align-items:center"><input type="checkbox" id="del" ${s.delivery?'checked':''} style="width:20px;height:20px"> Faz entrega</label><label style="margin:0;display:flex;gap:8px;align-items:center"><input type="checkbox" id="pk" ${s.pickup?'checked':''} style="width:20px;height:20px"> Levantamento</label></div>
-<button class="btn w" id="sv" style="margin-top:18px">${n?'Criar loja grátis':'Guardar'}</button></div>`;
+ <label>Nome do negócio</label><input id="n" value="${esc(s.name)}" placeholder="Ex.: Barbearia do Paulo">
+ <label>Link da loja</label><div class="row" style="flex-wrap:nowrap;gap:4px"><span class="muted small" style="flex:0 0 auto">fumacraft.pages.dev/</span><input id="sl" value="${esc(s.slug)}" placeholder="barbearia-do-paulo"></div>
+ <label>WhatsApp (com código do país)</label><input id="w" value="${esc(s.whatsapp)}" inputmode="tel" placeholder="Ex.: 258 84 123 4567">
+ <div class="row"><div><label>Moeda</label><select id="c">${Object.keys(CUR).map(k=>`<option ${k===s.currency?'selected':''}>${k}</option>`).join('')}</select></div><div><label>Taxa de entrega</label><input id="fee" type="number" min="0" step="0.01" value="${s.delivery_fee||0}"></div></div>
+ <label>Descrição</label><textarea id="d" rows="2" placeholder="O que vende ou serviço que presta, horário e zona de atendimento">${esc(s.description)}</textarea>
+ ${picker('lg','Logo',s.logo_url,false,'🏪')}${picker('cv','Foto de capa',s.cover_url,true,'🖼️')}
+ <label>Como atende os clientes?</label><select id="mode">
+  <option value="both" ${mode==='both'?'selected':''}>Entrega e levantamento</option>
+  <option value="delivery" ${mode==='delivery'?'selected':''}>Só entrega</option>
+  <option value="pickup" ${mode==='pickup'?'selected':''}>Atendimento no local / levantamento</option>
+  <option value="booking" ${mode==='booking'?'selected':''}>Serviços por marcação (ex.: barbearia, salão, consultório)</option>
+ </select>
+ <p class="small muted">Em serviços por marcação, o cliente envia uma preferência de dia e hora. Tu confirmas a disponibilidade directamente no WhatsApp.</p>
+ <button class="btn w" id="sv" style="margin-top:18px">${n?'Criar loja grátis':'Guardar'}</button></div>`;
  let touched=!!s.slug;$('#sl').oninput=()=>touched=true;$('#n').oninput=()=>{if(!touched)$('#sl').value=slugify($('#n').value)};
  bindPicker('lg',f=>logo=f);bindPicker('cv',f=>cover=f);
- $('#sv').onclick=async()=>{const b=$('#sv');const o={name:$('#n').value.trim(),slug:slugify($('#sl').value||$('#n').value),whatsapp:$('#w').value.replace(/\D/g,''),currency:$('#c').value,delivery_fee:+$('#fee').value||0,description:$('#d').value.trim(),delivery:$('#del').checked,pickup:$('#pk').checked};
-  if(!o.name)return toast('Escreva o nome da loja');if(o.slug.length<3||RESERVED.includes(o.slug))return toast('Escolha outro link');if(o.whatsapp.length<8)return toast('WhatsApp inválido');if(!o.delivery&&!o.pickup)return toast('Escolha entrega ou levantamento');
+ $('#sv').onclick=async()=>{const b=$('#sv'),m=$('#mode').value;
+  const o={name:$('#n').value.trim(),slug:slugify($('#sl').value||$('#n').value),whatsapp:$('#w').value.replace(/\D/g,''),currency:$('#c').value,
+   delivery_fee:Math.max(0,+$('#fee').value||0),description:$('#d').value.trim(),delivery:m==='both'||m==='delivery',pickup:m==='both'||m==='pickup'};
+  if(!o.name)return toast('Escreva o nome do negócio');
+  if(o.slug.length<3||RESERVED.includes(o.slug))return toast('Escolha outro link');
+  if(o.whatsapp.length<8||o.whatsapp.length>15)return toast('WhatsApp inválido. Inclua o código do país.');
+  if(m==='booking')o.delivery=false,o.pickup=false;
   b.disabled=true;b.textContent='A guardar…';
   try{if(logo)o.logo_url=await upload(logo,me.id,'logo');if(cover)o.cover_url=await upload(cover,me.id,'cover');
    const r=n?await sb.from('stores').insert({...o,owner:me.id}):await sb.from('stores').update(o).eq('id',s.id);
    if(r.error){if(r.error.code==='23505')throw new Error('Este link já existe, escolha outro');throw r.error}
-   toast(n?'Loja criada! 🎉':'Guardado');panel();}catch(e){toast(e.message||'Erro');b.disabled=false;b.textContent='Tentar de novo'}};}
-
-function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',category:'',photo_url:'',active:true};let ph=null;
- app.innerHTML=`<h1>${n?'Novo produto':'Editar produto'}</h1><div class="card">${picker('pf','Foto do produto',p.photo_url,false)}
-<label>Nome</label><input id="pn" value="${esc(p.name)}" placeholder="Ex.: Bolo de chocolate">
+   toast(n?'Loja criada! 🎉':'Guardado');panel();
+  }catch(e){toast(e.message||'Erro');b.disabled=false;b.textContent='Tentar de novo'}
+ };
+}
+function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',category:'',photo_url:'',active:true};let ph=null;const serviceOnly=s.delivery===false&&s.pickup===false;
+ app.innerHTML=`<h1>${n?(serviceOnly?'Novo serviço':'Novo produto'):(serviceOnly?'Editar serviço':'Editar produto')}</h1><div class="card">${picker('pf',serviceOnly?'Foto do serviço':'Foto do produto',p.photo_url,false)}
+<label>${serviceOnly?'Nome do serviço':'Nome'}</label><input id="pn" value="${esc(p.name)}" placeholder="${serviceOnly?'Ex.: Corte masculino':'Ex.: Camisa azul'}">
 <div class="row"><div><label>Preço (${s.currency})</label><input id="pp" type="number" min="0" step="0.01" value="${p.price}"></div><div><label>Categoria</label><input id="pc" value="${esc(p.category)}" placeholder="Ex.: Bolos"></div></div>
 <label>Descrição</label><textarea id="pd" rows="3">${esc(p.description)}</textarea>
 <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="pa" ${p.active?'checked':''} style="width:20px;height:20px"> Visível na loja</label>
@@ -374,37 +412,50 @@ ${cats.length>1?`<div class="chips"><button class="chip ${cat?'':'on'}" data-c="
 <div class="row" style="margin-top:14px"><button class="btn o" id="mc">Fechar</button><button class="btn" id="ma">Adicionar ao pedido</button></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#mc').onclick=()=>m.remove();m.querySelector('#ma').onclick=()=>{cart[p.id]=(cart[p.id]||0)+1;m.remove();draw();toast('Adicionado ao pedido')}};
  draw();}
-function checkout(s,back,key,demo){const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0);const modes=[s.delivery&&'entrega',s.pickup&&'levantamento'].filter(Boolean);window.scrollTo(0,0);
- app.innerHTML=`<button class="btn s o" id="b2">← Continuar a comprar</button><h1>O seu pedido</h1>
-<div class="card">${items.map(p=>`<div class="li"><span>${esc(p.name)}<br><span class="qty" style="margin-top:6px"><button data-m="${p.id}">−</button><b>${cart[p.id]}</b><button data-p="${p.id}">+</button></span></span><b>${fmt(p.price*cart[p.id],s.currency)}</b></div>`).join('')}
-<div class="li"><span>Subtotal</span><b>${fmt(sub,s.currency)}</b></div><div class="li" id="fr"></div><div class="li" style="border:0"><span style="font-size:18px"><b>Total</b></span><b id="tot" style="font-size:20px"></b></div></div>
-<div class="card" style="margin-top:14px"><label>O seu nome</label><input id="cn" autocomplete="name" value="${esc(localStorage.getItem('fc_name')||'')}">
-${modes.length>1?`<label>Como quer receber?</label><div class="tabs">${modes.map((m,i)=>`<button data-md="${m}" class="${i===0?'on':''}">${m==='entrega'?'🛵 Entrega':'🏪 Levantar'}</button>`).join('')}</div>`:''}
-<div id="aw"><label>Endereço de entrega</label><textarea id="ad" rows="2" autocomplete="street-address">${esc(localStorage.getItem('fc_addr')||'')}</textarea></div>
-<label>Observações (opcional)</label><input id="ob" placeholder="Ex.: sem cebola, troco para 100"></div>
-<button class="btn w" id="go" style="margin-top:14px;font-size:17px;padding:15px">💬 Enviar pedido pelo WhatsApp</button><div style="height:30px"></div>`;
- let md=modes[0];
- const upd=()=>{const del=md==='entrega',fee=del?(+s.delivery_fee||0):0;$('#aw').classList.toggle('hide',!del);$('#fr').innerHTML=`<span>${del?'Entrega':'Levantamento na loja'}</span><b>${fee?fmt(fee,s.currency):'Grátis'}</b>`;$('#tot').textContent=fmt(sub+fee,s.currency);return fee};upd();
+function checkout(s,back,key,demo){
+ const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0);
+ const bookingOnly=s.delivery===false&&s.pickup===false;
+ const modes=[s.delivery&&'entrega',s.pickup&&'levantamento'].filter(Boolean);if(!modes.length)modes.push('marcacao');
+ window.scrollTo(0,0);let md=modes[0];
+ app.innerHTML=`<button class="btn s o" id="b2">← Continuar a comprar</button><h1>${bookingOnly?'Pedido de marcação':'O seu pedido'}</h1>
+ <div class="card">${items.map(p=>`<div class="li"><span>${esc(p.name)}<br><span class="qty" style="margin-top:6px"><button data-m="${p.id}">−</button><b>${cart[p.id]}</b><button data-p="${p.id}">+</button></span></span><b>${fmt(p.price*cart[p.id],s.currency)}</b></div>`).join('')}
+ <div class="li"><span>Subtotal</span><b>${fmt(sub,s.currency)}</b></div><div class="li" id="fr"></div><div class="li" style="border:0"><span style="font-size:18px"><b>Total</b></span><b id="tot" style="font-size:20px"></b></div></div>
+ <div class="card" style="margin-top:14px"><label>O seu nome</label><input id="cn" autocomplete="name" value="${esc(localStorage.getItem('fc_name')||'')}">
+ ${modes.length>1?`<label>Como quer receber?</label><div class="tabs">${modes.map((m,i)=>`<button data-md="${m}" class="${i===0?'on':''}">${m==='entrega'?'🛵 Entrega':'🏪 Levantar'}</button>`).join('')}</div>`:''}
+ <div id="aw"></div><label>Observações (opcional)</label><input id="ob" placeholder="Ex.: preferência, detalhes ou alguma informação importante"></div>
+ <button class="btn w" id="go" style="margin-top:14px;font-size:17px;padding:15px">${bookingOnly?'📅 Enviar pedido de marcação':'💬 Enviar pedido pelo WhatsApp'}</button><div style="height:30px"></div>`;
+ const upd=()=>{const del=md==='entrega',booking=md==='marcacao',fee=del?(+s.delivery_fee||0):0;
+  $('#aw').innerHTML=del?`<label>Endereço de entrega</label><textarea id="ad" rows="2" autocomplete="street-address">${esc(localStorage.getItem('fc_addr')||'')}</textarea>`:
+   booking?`<label>Dia e hora pretendidos</label><input id="ad" placeholder="Ex.: 15/11 às 14h" inputmode="text">`:'';
+  $('#fr').innerHTML=`<span>${del?'Entrega':booking?'Marcação (a confirmar)':'Levantamento na loja'}</span><b>${fee?fmt(fee,s.currency):'Grátis'}</b>`;
+  $('#tot').textContent=fmt(sub+fee,s.currency);return fee;
+ };upd();
  app.querySelectorAll('[data-md]').forEach(b=>b.onclick=()=>{md=b.dataset.md;app.querySelectorAll('[data-md]').forEach(x=>x.classList.toggle('on',x===b));upd()});
  app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{cart[b.dataset.p]++;localStorage.setItem(key,JSON.stringify(cart));checkout(s,back,key,demo)});
- app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(--cart[b.dataset.m]<=0)delete cart[b.dataset.m];localStorage.setItem(key,JSON.stringify(cart));Object.keys(cart).length?checkout(s,back,key):back()});
+ app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{if(--cart[b.dataset.m]<=0)delete cart[b.dataset.m];localStorage.setItem(key,JSON.stringify(cart));Object.keys(cart).length?checkout(s,back,key,demo):back()});
  $('#b2').onclick=back;
- $('#go').onclick=async()=>{const name=$('#cn').value.trim(),ad=$('#ad').value.trim(),ob=$('#ob').value.trim();if(!name)return toast('Escreva o seu nome');if(md==='entrega'&&!ad)return toast('Escreva o endereço');
-  localStorage.setItem('fc_name',name);if(ad)localStorage.setItem('fc_addr',ad);const fee=upd();
-  const L=[`🛍️ *Novo pedido — ${s.name}*`,'',...items.map(p=>`• ${cart[p.id]}× ${p.name} — ${fmt(p.price*cart[p.id],s.currency)}`),'',`Subtotal: ${fmt(sub,s.currency)}`,md==='entrega'?`🛵 Entrega: ${fee?fmt(fee,s.currency):'grátis'}`:'🏪 Levantamento na loja',`*Total: ${fmt(sub+fee,s.currency)}*`,'',`👤 ${name}`];
-  if(md==='entrega')L.push(`📍 ${ad}`);if(ob)L.push(`📝 ${ob}`);L.push('','_Pedido feito na loja Fumacraft_');
-  const g=$('#go');g.disabled=true;g.textContent='A criar o pedido…';
-  let code;if(demo||s.id==='demo'){code=Math.random().toString(36).slice(2,8).toUpperCase()}else{const r=await sb.rpc('create_order',{sid:s.id,its:items.map(p=>({id:p.id,qty:cart[p.id]})),cname:name,cmode:md||'levantamento',caddr:ad,cnote:ob});if(r.error||!r.data?.[0]){g.disabled=false;g.textContent='💬 Enviar pedido pelo WhatsApp';return toast('Não foi possível criar o pedido. Tente de novo.')}code=r.data[0].code}
-  L.splice(1,0,`🔑 *Código do pedido: ${code}*`);
+ $('#go').onclick=async()=>{const name=$('#cn').value.trim(),ad=$('#ad')?.value.trim()||'',ob=$('#ob').value.trim();
+  if(!name)return toast('Escreva o seu nome');if(md==='entrega'&&!ad)return toast('Escreva o endereço de entrega');if(md==='marcacao'&&!ad)return toast('Indique o dia e a hora que prefere');
+  localStorage.setItem('fc_name',name);if(md==='entrega'&&ad)localStorage.setItem('fc_addr',ad);const fee=upd();
+  const L=[md==='marcacao'?`📅 *Pedido de marcação — ${s.name}*`:`🛍️ *Novo pedido — ${s.name}*`,'',...items.map(p=>`• ${cart[p.id]}× ${p.name} — ${fmt(p.price*cart[p.id],s.currency)}`),'',`Subtotal: ${fmt(sub,s.currency)}`,
+   md==='entrega'?`🛵 Entrega: ${fee?fmt(fee,s.currency):'grátis'}`:md==='marcacao'?'📅 Marcação — disponibilidade a confirmar':'🏪 Levantamento na loja',
+   `*Total: ${fmt(sub+fee,s.currency)}*`,'',`👤 ${name}`];
+  if(md==='entrega')L.push(`📍 ${ad}`);if(md==='marcacao')L.push(`🕒 Dia/hora pretendidos: ${ad}`);if(ob)L.push(`📝 ${ob}`);L.push('','_Enviado através do Fumacraft_');
+  const g=$('#go');g.disabled=true;g.textContent='A registar…';let code;
+  if(demo||s.id==='demo')code=Math.random().toString(36).slice(2,8).toUpperCase();
+  else{const r=await sb.rpc('create_order',{sid:s.id,its:items.map(p=>({id:p.id,qty:cart[p.id]})),cname:name,cmode:md,caddr:ad,cnote:ob});
+   if(r.error||!r.data?.[0]){g.disabled=false;g.textContent=bookingOnly?'📅 Enviar pedido de marcação':'💬 Enviar pedido pelo WhatsApp';return toast('Não foi possível registar. Verifique a ligação e tente novamente.')}code=r.data[0].code;}
+  L.splice(1,0,`🔑 *Código: ${code}*`);
   const mine=JSON.parse(localStorage.getItem('fc_orders')||'[]');mine.unshift({code,store:s.name,slug:s.slug,total:fmt(sub+fee,s.currency),at:Date.now()});localStorage.setItem('fc_orders',JSON.stringify(mine.slice(0,20)));
   cart={};localStorage.removeItem(key);const wa='https://wa.me/'+s.whatsapp+'?text='+encodeURIComponent(L.join('\n'));window.scrollTo(0,0);
-  app.innerHTML=`<div class="card" style="text-align:center;margin-top:10px"><div style="font-size:40px">✅</div><h2 style="margin:6px 0">Pedido criado!</h2><p class="muted" style="margin:0">O seu código do pedido é</p>
-<div style="font-size:42px;font-weight:800;letter-spacing:6px;margin:8px 0;color:var(--g)">${code}</div>
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(location.origin+'/painel?pedido='+code)}" width="220" height="220" alt="QR do pedido" style="border-radius:12px;border:1px solid #eee">
-<p class="small muted">Guarde este código. Ao chegar à loja, diga o código ou mostre o QR e o vendedor vê logo o seu pedido.</p>
-<a class="btn w" href="${wa}" style="font-size:17px;padding:15px">💬 Enviar pedido pelo WhatsApp</a>
-<button class="btn o w" id="bk2" style="margin-top:10px">Voltar à loja</button></div>`;$('#bk2').onclick=back;location.href=wa};}
-
+  app.innerHTML=`<div class="card" style="text-align:center;margin-top:10px"><div style="font-size:40px">✅</div><h2 style="margin:6px 0">${md==='marcacao'?'Pedido de marcação registado!':'Pedido criado!'}</h2>
+  <p class="muted" style="margin:0">Código do pedido</p><div style="font-size:42px;font-weight:800;letter-spacing:6px;margin:8px 0;color:var(--g)">${code}</div>
+  ${md==='marcacao'?'<p class="small muted">O negócio vai verificar a disponibilidade e confirmar contigo directamente no WhatsApp.</p>':`<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=${encodeURIComponent(location.origin+'/painel?pedido='+code)}" width="220" height="220" alt="QR do pedido" style="border-radius:12px;border:1px solid #eee"><p class="small muted">Guarde este código. Ao chegar à loja, diga o código ou mostre o QR.</p>`}
+  <a class="btn w" href="${wa}" style="font-size:17px;padding:15px">💬 ${md==='marcacao'?'Enviar pedido de marcação':'Enviar pedido'} pelo WhatsApp</a>
+  <button class="btn o w" id="bk2" style="margin-top:10px">Voltar à loja</button></div>`;
+  $('#bk2').onclick=back;setTimeout(()=>{location.href=wa},350);
+ };
+}
 /* ===== PAGAR (subscription) ===== */
 function payBox(done){const el=$('#payb');if(!el)return;let m='MPESA';
  el.innerHTML=`<div><div class="tabs" style="margin-top:8px"><button data-pm="MPESA" class="on">M-Pesa</button><button data-pm="EMOLA">eMola</button></div>
@@ -465,18 +516,22 @@ async function plans(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
 
 /* ===== ORDERS (seller) ===== */
 const stLabel={novo:'🟡 Novo',pronto:'🔵 Pronto',entregue:'🟢 Entregue'};
+const orderLabel=o=>o.mode==='marcacao'?({novo:'🟡 Marcação solicitada',pronto:'✅ Marcação confirmada',entregue:'🟢 Atendimento concluído'}[o.status]||o.status):(stLabel[o.status]||o.status);
 async function loadOrders(s){const el=$('#ol');if(!el)return;const {data}=await sb.from('orders').select('*').eq('store_id',s.id).order('created_at',{ascending:false}).limit(10);
- el.innerHTML=(data||[]).map(o=>`<div class="li" data-oc="${o.code}" style="cursor:pointer"><span><b style="letter-spacing:2px">${o.code}</b> · ${esc(o.customer||'')}<br><span class="small muted">${new Date(o.created_at).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})} · ${stLabel[o.status]||o.status}</span></span><b>${fmt(o.total,s.currency)}</b></div>`).join('')||'<p class="small muted">Ainda não há pedidos.</p>';
+ el.innerHTML=(data||[]).map(o=>`<div class="li" data-oc="${o.code}" style="cursor:pointer"><span><b style="letter-spacing:2px">${o.code}</b> · ${esc(o.customer||'')}<br><span class="small muted">${new Date(o.created_at).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})} · ${orderLabel(o)}</span></span><b>${fmt(o.total,s.currency)}</b></div>`).join('')||'<p class="small muted">Ainda não há pedidos.</p>';
  el.querySelectorAll('[data-oc]').forEach(d=>d.onclick=()=>openOrder(s,d.dataset.oc));}
 async function openOrder(s,raw){let c=String(raw||'').trim();const m=c.match(/pedido=([A-Za-z0-9]+)/);if(m)c=m[1];c=c.toUpperCase().replace(/[^A-Z0-9]/g,'');if(c.length<4)return toast('Escreva o código do pedido');
  const {data:o}=await sb.from('orders').select('*').eq('store_id',s.id).eq('code',c).maybeSingle();if(!o)return toast('Pedido '+c+' não encontrado');
- const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet"><div class="small muted">Pedido</div><h2 style="margin:0 0 4px;letter-spacing:4px">${o.code}</h2><div>${stLabel[o.status]||o.status} · ${esc(o.customer||'')}</div>
+ const booking=o.mode==='marcacao',status=orderLabel(o),next=o.status==='novo'?'pronto':o.status==='pronto'?'entregue':null;
+ const action=booking?(o.status==='novo'?'Confirmar marcação':'Marcar atendimento concluído'):(o.status==='novo'?'Marcar pronto':'Marcar entregue');
+ const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet"><div class="small muted">${booking?'Pedido de marcação':'Pedido'}</div><h2 style="margin:0 0 4px;letter-spacing:4px">${o.code}</h2><div>${status} · ${esc(o.customer||'')}</div>
 <div class="card" style="margin-top:10px">${o.items.map(i=>`<div class="li"><span>${i.qty}× ${esc(i.name)}</span><b>${fmt(i.price*i.qty,s.currency)}</b></div>`).join('')}
-<div class="li"><span>${o.mode==='entrega'?'🛵 Entrega':'🏪 Levantamento'}</span><b>${o.fee?fmt(o.fee,s.currency):'Grátis'}</b></div><div class="li" style="border:0"><b>Total</b><b>${fmt(o.total,s.currency)}</b></div></div>
-${o.address?`<p class="small">📍 ${esc(o.address)}</p>`:''}${o.note?`<p class="small">📝 ${esc(o.note)}</p>`:''}
-<div class="row" style="margin-top:12px">${o.status!=='entregue'?`<button class="btn" data-st="${o.status==='novo'?'pronto':'entregue'}">${o.status==='novo'?'Marcar pronto':'Marcar entregue'}</button>`:''}<button class="btn r" id="xd">Apagar</button><button class="btn o" id="xc">Fechar</button></div></div>`;
+<div class="li"><span>${booking?'📅 Marcação':o.mode==='entrega'?'🛵 Entrega':'🏪 Levantamento'}</span><b>${o.fee?fmt(o.fee,s.currency):'Grátis'}</b></div><div class="li" style="border:0"><b>Total</b><b>${fmt(o.total,s.currency)}</b></div></div>
+${o.address?`<p class="small">${booking?'🕒 Preferência de dia/hora:':'📍 '}${esc(o.address)}</p>`:''}${o.note?`<p class="small">📝 ${esc(o.note)}</p>`:''}
+<div class="row" style="margin-top:12px">${next?`<button class="btn" data-st="${next}">${action}</button>`:''}<button class="btn r" id="xd">Apagar</button><button class="btn o" id="xc">Fechar</button></div></div>`;
  document.body.appendChild(md);md.onclick=e=>{if(e.target===md)md.remove()};md.querySelector('#xc').onclick=()=>md.remove();md.querySelector('#xd').onclick=async()=>{if(!confirm('Apagar o pedido '+o.code+'?'))return;const e=(await sb.from('orders').delete().eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Pedido apagado');loadOrders(s)};
- const b=md.querySelector('[data-st]');if(b)b.onclick=async()=>{b.disabled=true;const e=(await sb.from('orders').update({status:b.dataset.st}).eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Atualizado');loadOrders(s)};}
+ const b=md.querySelector('[data-st]');if(b)b.onclick=async()=>{b.disabled=true;const e=(await sb.from('orders').update({status:b.dataset.st}).eq('id',o.id)).error;if(e)return toast(e.message);md.remove();toast('Atualizado');loadOrders(s)};
+}
 function loadJsQR(){return window.jsQR?Promise.resolve():new Promise((ok,no)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';sc.onload=ok;sc.onerror=no;document.head.appendChild(sc)})}
 async function scanQR(cb){const md=document.createElement('div');md.className='modal';md.innerHTML=`<div class="sheet" style="text-align:center"><h3 style="margin-top:0">Aponte para o QR do cliente</h3><video playsinline muted style="width:100%;border-radius:12px;background:#000"></video><button class="btn o w" style="margin-top:10px">Fechar</button></div>`;document.body.appendChild(md);
  const v=md.querySelector('video');let stream,on=true;const stop=()=>{on=false;stream&&stream.getTracks().forEach(t=>t.stop());md.remove()};md.querySelector('button').onclick=stop;
@@ -492,8 +547,8 @@ async function explore(){document.title='Explorar lojas · Fumacraft';app.innerH
  const draw=()=>{const t=q.toLowerCase();const S=st.filter(s=>!t||(s.name+' '+(s.description||'')).toLowerCase().includes(t));const P=ps.filter(p=>!t||(p.name+' '+(p.category||'')).toLowerCase().includes(t));
   $('#er').innerHTML=`<h2>Lojas (${S.length})</h2><div class="grid p">${S.map(s=>`<a class="card prod" href="/${esc(s.slug)}" data-l style="text-decoration:none;color:inherit">${s.cover_url?`<img class="thumb" src="${esc(s.cover_url)}" loading="lazy" alt="">`:s.logo_url?`<img class="thumb" src="${esc(s.logo_url)}" loading="lazy" alt="">`:`<div class="thumb ph" style="font-size:34px">${esc(s.name.trim()[0].toUpperCase())}</div>`}<h3>${esc(s.name)}</h3>${s.description?`<div class="small muted">${esc(s.description.slice(0,70))}</div>`:''}</a>`).join('')||'<p class="muted">Nenhuma loja encontrada.</p>'}</div>
 ${t?`<h2>Produtos (${P.length})</h2><div class="grid p">${P.slice(0,60).map(p=>`<a class="card prod" href="/${esc(byId[p.store_id].slug)}" data-l style="text-decoration:none;color:inherit">${p.photo_url?`<img class="thumb" src="${esc(p.photo_url)}" loading="lazy" alt="">`:`<div class="thumb ph" style="font-size:34px">${esc(p.name.trim()[0].toUpperCase())}</div>`}<h3>${esc(p.name)}</h3><div class="price">${fmt(p.price,byId[p.store_id].currency)}</div><div class="small muted">${esc(byId[p.store_id].name)}</div></a>`).join('')||'<p class="muted">Nenhum produto encontrado.</p>'}</div>`:''}`;};
- app.innerHTML=`<h1 style="margin:6px 0">🔎 Explorar</h1><p class="muted" style="margin-top:0">Encontre lojas e produtos perto de si e faça o pedido pelo WhatsApp.</p>
-<input id="eq" placeholder="O que procura? Ex.: bolo, sapatos, frango…" style="font-size:18px;padding:14px">
+ app.innerHTML=`<h1 style="margin:6px 0">🔎 Explorar</h1><p class="muted" style="margin-top:0">Encontre lojas, produtos e serviços. Escolha o que procura e fale directamente com o negócio.</p>
+<input id="eq" placeholder="O que procura? Ex.: bolo, sapatos, corte de cabelo…" style="font-size:18px;padding:14px">
 ${mine.length?`<details style="margin-top:12px"><summary>🔑 Os meus códigos de pedido (${mine.length})</summary>${mine.map(o=>`<div class="li"><span><b style="letter-spacing:2px">${esc(o.code)}</b> · ${esc(o.store)}</span><span>${esc(o.total)}</span></div>`).join('')}</details>`:''}
 <div id="er"></div>`;
  const e=$('#eq');e.oninput=()=>{q=e.value;draw()};draw();}
