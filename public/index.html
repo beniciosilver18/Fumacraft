@@ -368,6 +368,7 @@ async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="sp
 ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">${p.photo_url?`<img src="${esc(p.photo_url)}" style="width:52px;height:52px;border-radius:10px;object-fit:cover;flex:0 0 52px">`:`<div class="thumb ph" style="width:52px;font-size:22px;flex:0 0 52px">${esc(p.name.trim()[0].toUpperCase())}</div>`}
 <div style="min-width:0"><b>${esc(p.name)}</b><br><span class="small muted">${fmt(p.price,s.currency)}</span> <span class="badge ${p.active?'on':''}">${p.active?'Visível':'Oculto'}</span></div></div>
 <button class="btn s o" data-e="${p.id}" style="flex:0">Editar</button></div>`).join('')||'<p class="muted">Ainda não tem produtos. Toque em + Novo para adicionar o primeiro.</p>'}</div>
+<div class="card" style="margin-top:14px"><h3>📊 Análises da loja</h3><p class="small muted">Acompanha visualizações, produtos populares e desempenho das vendas.</p><button class="btn o w" id="an" type="button">Abrir análises</button></div>
 <div class="card" style="margin-top:14px"><h3>🧾 Pedidos</h3><p class="small muted" style="margin-top:0">Quando o cliente chegar, peça o código do pedido ou leia o QR.</p>
 <div class="row" style="flex-wrap:nowrap"><input id="oc" placeholder="Código, ex.: K7M2QX" style="text-transform:uppercase" maxlength="6"><button class="btn s" id="ov" style="flex:0 0 auto">Ver</button></div>
 <button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div>
@@ -380,7 +381,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
  $('#odel').onclick=async()=>{if(!confirm('Apagar todos os pedidos já entregues? Isto não pode ser desfeito.'))return;const er=(await sb.from('orders').delete().eq('store_id',s.id).eq('status','entregue')).error;if(er)return toast(er.message);toast('Pedidos entregues apagados');loadOrders(s)};const pq=new URLSearchParams(location.search).get('pedido');if(pq)openOrder(s,pq);
  $('#lo').onclick=async()=>{if(rtCh){sb.removeChannel(rtCh);rtCh=null}await sb.auth.signOut();me=null;go('/')};
  $('#cp').onclick=()=>navigator.clipboard.writeText(url).then(()=>toast('Link copiado'));
- $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);
+ $('#np').onclick=()=>productForm(s,null);$('#es').onclick=()=>storeForm(s);$('#an').onclick=()=>sellerAnalytics();
  app.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>productForm(s,ps.find(p=>p.id===b.dataset.e)));}
 
 function storeForm(s){
@@ -443,6 +444,26 @@ function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',categ
  const x=$('#px');if(x)x.onclick=async()=>{if(!confirm('Apagar este produto?'))return;await sb.from('products').delete().eq('id',p.id);toast('Apagado');panel()};}
 
 
+
+async function sellerAnalytics(days=30){
+ app.innerHTML='<div class="spin"></div>';
+ const r=await sb.rpc('seller_analytics',{p_days:days});
+ if(r.error){app.innerHTML='<div class="card"><h2>Não foi possível carregar as análises</h2><p class="muted">'+esc(r.error.message)+'</p><button class="btn o" id="ab">Voltar ao painel</button></div>';$('#ab').onclick=()=>panel();return}
+ const a=r.data||{},top=a.top_products||[],daily=a.daily||[];
+ const sr=await sb.from('stores').select('currency').eq('owner',me.id).maybeSingle(),currency=sr.data?.currency||'USD';
+ const card=(t,v)=>'<div class="card" style="text-align:center"><div class="small muted">'+t+'</div><b style="font-size:25px">'+v+'</b></div>';
+ app.innerHTML='<div class="row" style="justify-content:space-between"><h1>📊 Análises da loja</h1><button class="btn s o" id="ab">← Voltar</button></div><div class="card"><label>Período</label><select id="sd"><option value="7">Últimos 7 dias</option><option value="30" '+(days===30?'selected':'')+'>Últimos 30 dias</option><option value="90" '+(days===90?'selected':'')+'>Últimos 90 dias</option></select></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:12px">'+card('Visualizações da loja',a.store_views||0)+card('Visualizações de produtos',a.product_views||0)+card('Adições ao carrinho',a.add_to_cart||0)+card('Pedidos recebidos',a.orders||0)+card('Vendas registadas',fmt(+a.revenue||0,currency))+'</div><div class="card" style="margin-top:14px"><h3>🏆 Produtos mais vendidos</h3>'+(top.length?top.map(p=>'<div class="li"><div><b>'+esc(p.name)+'</b><div class="small muted">'+p.units_sold+' unidades vendidas · '+p.views+' visualizações</div></div></div>').join(''):'<p class="muted">Ainda não há dados de vendas ou visualizações neste período.</p>')+'</div><div class="card" style="margin-top:14px"><h3>📈 Actividade diária</h3>'+daily.map(x=>'<div class="li"><span>'+esc(x.day)+'</span><span class="small muted">'+x.views+' visualizações · '+x.orders+' pedidos</span></div>').join('')+'</div><p class="small muted">As estatísticas começam a ser recolhidas a partir da activação desta funcionalidade. Os dados antigos não são recuperados.</p>';
+ $('#ab').onclick=()=>panel();$('#sd').onchange=e=>sellerAnalytics(+e.target.value);
+}
+async function loadAdminAnalytics(days=30){
+ const box=$('#admAnalytics');if(!box)return;box.innerHTML='<div class="spin"></div>';
+ const r=await sb.rpc('admin_analytics',{p_days:days});
+ if(r.error){box.innerHTML='<p class="muted">Erro ao carregar: '+esc(r.error.message)+'</p>';return}
+ const a=r.data||{},topS=a.top_stores||[],topP=a.top_products||[];
+ const k=(label,val)=>'<div class="card" style="text-align:center"><div class="small muted">'+label+'</div><b style="font-size:24px">'+val+'</b></div>';
+ box.innerHTML='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-top:12px">'+k('Visualizações de lojas',a.store_views||0)+k('Visualizações de produtos',a.product_views||0)+k('Adições ao carrinho',a.add_to_cart||0)+k('Pedidos',a.orders||0)+k('Vendas registadas',(+a.revenue||0).toLocaleString('pt-PT'))+'</div><h3 style="margin-top:18px">Lojas com mais tráfego</h3>'+(topS.length?topS.map(x=>'<div class="li"><div><b>'+esc(x.name)+'</b><div class="small muted">'+x.views+' visualizações · '+x.orders+' pedidos</div></div><a class="btn s o" href="/'+esc(x.slug)+'" data-l>Ver</a></div>').join(''):'<p class="muted">Sem dados ainda.</p>')+'<h3 style="margin-top:18px">Produtos mais vendidos</h3>'+(topP.length?topP.map(x=>'<div class="li"><div><b>'+esc(x.name)+'</b><div class="small muted">'+esc(x.store_name)+' · '+x.units_sold+' unidades · '+x.views+' visualizações</div></div></div>').join(''):'<p class="muted">Sem dados ainda.</p>')+'<p class="small muted">Estatísticas recolhidas a partir da activação do acompanhamento. Vendas antigas não são reconstruídas.</p>';
+}
+
 /* ===== ADMIN ===== */
 async function admin(){
  if(!me)return go('/entrar?modo=entrar');
@@ -468,13 +489,15 @@ async function admin(){
  const navButton=(p,label)=>'<button class="btn s '+(page===p?'':'o')+'" data-page="'+p+'">'+label+'</button>';
  function render(){
   let h='<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">Painel de Administração</h1><span class="badge on">Acesso autorizado</span></div><div class="row" style="gap:7px;margin:12px 0 16px">'+(can('dashboard.view')?navButton('overview','Visão geral'):'');
+  if(can('dashboard.view'))h+=navButton('analytics','Análises');
   if(can('stores.view'))h+=navButton('stores','Lojas');
   if(can('users.view'))h+=navButton('users','Utilizadores');
   if(can('orders.view'))h+=navButton('orders','Pedidos');
   if(can('products.manage'))h+=navButton('products','Produtos');
   if(root)h+=navButton('access','Acessos e permissões');
   h+='</div>';
-  if(page==='overview'){
+  if(page==='analytics'&&can('dashboard.view')){h+='<div class="card"><h3>📊 Análises da plataforma</h3><p class="small muted">Indicadores agregados de todas as lojas no período seleccionado.</p><select id="admDays"><option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option></select><div id="admAnalytics"><div class="spin"></div></div></div>';}
+  else if(page==='overview'){
    h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">'+(can('stores.view')?card('Lojas',stores.length):'')+(can('dashboard.view')?card('Contas',cr.error?'—':cr.data):'');
    if(can('users.view'))h+=card('Utilizadores listados',users.length);
    if(can('orders.view'))h+=card('Pedidos recentes',orders.length);
@@ -514,7 +537,8 @@ async function admin(){
    h+=staff.map(x=>'<div class="card" style="margin-bottom:9px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.email)+'</b><div class="small muted">Função: '+esc(x.role)+'</div><div class="small muted">Permissões especiais: '+Object.entries(x.permissions||{}).filter(y=>y[1]===true).map(y=>y[0]).join(', ')+'</div></div><button class="btn s r" data-remove-staff="'+esc(x.email)+'">Remover acesso</button></div></div>').join('')||'<p class="muted">Ainda não há membros adicionais na equipa.</p>';
   }
   app.innerHTML=h;
-  app.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;query='';render()});
+  app.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;query='';render();if(page==='analytics')loadAdminAnalytics(30)});
+  const ad=$('#admDays');if(ad)ad.onchange=()=>loadAdminAnalytics(+ad.value);
   const inp=$('#admSearch');if(inp)inp.oninput=()=>{query=inp.value;const pos=inp.selectionStart;render();const ni=$('#admSearch');ni.focus();ni.setSelectionRange(pos,pos)};
   app.querySelectorAll('[data-del-store]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar a loja '+b.dataset.name+' e os produtos/pedidos associados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_store',{sid:b.dataset.delStore});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Loja eliminada');admin()});
   app.querySelectorAll('[data-store-visibility]').forEach(b=>b.onclick=async()=>{const visible=b.dataset.visible!=='true',label=visible?'publicar':'ocultar';if(!confirm('Pretende '+label+' esta loja?'))return;b.disabled=true;const r=await sb.rpc('admin_set_store_visibility',{p_store_id:b.dataset.storeVisibility,p_is_public:visible});if(r.error){b.disabled=false;return toast(r.error.message)}toast(visible?'Loja publicada':'Loja ocultada');admin()});
@@ -549,7 +573,8 @@ async function loadStore(slug){const model=STORE_MODELS.find(s=>s.slug===slug);i
  if(!isLive(s)){app.innerHTML=`<div class="card" style="text-align:center;margin-top:30px"><h2>${esc(s.name)}</h2><p class="muted">Esta loja está temporariamente indisponível.</p><a class="btn" href="https://wa.me/${s.whatsapp}">Falar no WhatsApp</a></div>`;return}
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).eq('active',true).order('sort').order('created_at');s.products=ps||[];storefront(s,false);}
 let cart={},cat='';
-function storefront(s,demo){document.title=s.name+' · Fumacraft';document.querySelector('.logo').lastChild.textContent=s.name;const key='fc_cart_'+s.slug;cart=JSON.parse(localStorage.getItem(key)||'{}');cat='';const bookingOnly=s.delivery===false&&s.pickup===false;
+function trackEvent(sid,type,pid=null){try{let v=localStorage.getItem('fc_visitor');if(!v){v=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now()).slice(0,40);localStorage.setItem('fc_visitor',v)}sb.rpc('log_event',{sid,etype:type,pid,vis:v})}catch(e){}}
+function storefront(s,demo){document.title=s.name+' · Fumacraft';if(!demo&&s.id)trackEvent(s.id,'store_view');document.querySelector('.logo').lastChild.textContent=s.name;const key='fc_cart_'+s.slug;cart=JSON.parse(localStorage.getItem(key)||'{}');cat='';const bookingOnly=s.delivery===false&&s.pickup===false;
  const cats=[...new Set(s.products.map(p=>p.category).filter(Boolean))];
  const ph=(p,cls='thumb')=>p.photo_url?`<img class="${cls}" src="${esc(p.photo_url)}" alt="${esc(p.name)}" loading="lazy">`:(p.e?`<div class="${cls}">${esc(p.e)}</div>`:`<div class="${cls} ph" style="font-size:34px">${esc(p.name.trim()[0].toUpperCase())}</div>`);
  const draw=()=>{localStorage.setItem(key,JSON.stringify(cart));const items=s.products.filter(p=>cart[p.id]);const sub=items.reduce((a,p)=>a+p.price*cart[p.id],0),count=items.reduce((a,p)=>a+cart[p.id],0);
@@ -567,11 +592,11 @@ ${cats.length>1?`<div class="chips"><button class="chip ${cat?'':'on'}" data-c="
 <p class="small muted" style="text-align:center">Loja criada com <a href="/" data-l>Fumacraft</a></p>`;
   const qi=$('#q');qi.oninput=()=>{const pos=qi.selectionStart;draw();const n=$('#q');n.focus();n.setSelectionRange(pos,pos)};
   app.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{cat=b.dataset.c;draw()});
-  app.querySelectorAll('[data-p]').forEach(b=>b.onclick=e=>{e.stopPropagation();cart[b.dataset.p]=(cart[b.dataset.p]||0)+1;draw()});
+  app.querySelectorAll('[data-p]').forEach(b=>b.onclick=e=>{e.stopPropagation();cart[b.dataset.p]=(cart[b.dataset.p]||0)+1;if(!demo&&s.id)trackEvent(s.id,'add_to_cart',b.dataset.p);draw()});
   app.querySelectorAll('[data-m]').forEach(b=>b.onclick=e=>{e.stopPropagation();if(--cart[b.dataset.m]<=0)delete cart[b.dataset.m];draw()});
   app.querySelectorAll('[data-o]').forEach(c=>c.onclick=()=>detail(s.products.find(p=>p.id===c.dataset.o)));
   const cb=$('#cb');if(cb)cb.onclick=()=>checkout(s,draw,key,demo);};
- const detail=p=>{const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${ph(p)}<h2 style="margin:12px 0 4px">${esc(p.name)}</h2><div class="price">${fmt(p.price,s.currency)}</div>${p.description?`<p class="muted">${esc(p.description)}</p>`:''}
+ const detail=p=>{if(!demo&&s.id)trackEvent(s.id,'product_view',p.id);const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="sheet">${ph(p)}<h2 style="margin:12px 0 4px">${esc(p.name)}</h2><div class="price">${fmt(p.price,s.currency)}</div>${p.description?`<p class="muted">${esc(p.description)}</p>`:''}
 <div class="row" style="margin-top:14px"><button class="btn o" id="mc">Fechar</button><button class="btn" id="ma">${bookingOnly?'Solicitar marcação':'Adicionar ao pedido'}</button></div></div>`;
   document.body.appendChild(m);m.onclick=e=>{if(e.target===m)m.remove()};m.querySelector('#mc').onclick=()=>m.remove();m.querySelector('#ma').onclick=()=>{cart[p.id]=(cart[p.id]||0)+1;m.remove();draw();toast('Adicionado ao pedido')}};
  draw();}
