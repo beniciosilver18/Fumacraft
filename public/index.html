@@ -452,7 +452,13 @@ async function admin(){
   sb.rpc('admin_list_users'),sb.rpc('admin_list_orders'),sb.rpc('admin_list_admin_members')
  ]);
  const pr=rs[0],sr=rs[1],cr=rs[2],ur=rs[3],or=rs[4],ar=rs[5];
- if(pr.error||sr.error){app.innerHTML='<div class="card"><h2>Acesso restrito</h2><p class="muted">Esta área está disponível apenas para contas autorizadas.</p><a class="btn o" href="/painel" data-l>Voltar à minha loja</a></div>';return}
+ if(pr.error&&!sr.error){
+  const oldStores=sr.data||[];
+  let fallback='<h1>Painel de Administração</h1><div class="banner">O painel avançado está preparado, mas falta aplicar a migração da base de dados. Vista de compatibilidade:</div><h3>Lojas ('+oldStores.length+')</h3>';
+  fallback+=oldStores.map(x=>'<div class="card" style="margin-bottom:9px"><b>'+esc(x.name)+'</b><div class="small muted">'+esc(x.email)+' · '+x.products+' produtos</div><a class="btn s o" href="/'+esc(x.slug)+'" data-l>Ver loja</a></div>').join('');
+  fallback+='<a class="btn o w" href="/painel" data-l>Voltar</a>';app.innerHTML=fallback;return;
+ }
+ if(sr.error){app.innerHTML='<div class="card"><h2>Acesso restrito</h2><p class="muted">Esta área está disponível apenas para contas autorizadas.</p><a class="btn o" href="/painel" data-l>Voltar à minha loja</a></div>';return}
  const perms=pr.data||{},can=k=>perms[k]===true;
  const stores=sr.data||[],users=ur.error?[]:(ur.data||[]),orders=or.error?[]:(or.data||[]),staff=ar.error?[]:(ar.data||[]);
  const root=!ar.error;let page='overview',query='';
