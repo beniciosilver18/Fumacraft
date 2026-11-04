@@ -323,14 +323,16 @@ function auth(mode='up'){
  if(me)return go('/painel');
  let legacy=false;
  const passwordOk=p=>/^(?=(?:.*\d){6})(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
- const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);return p};
+ const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);return p}
+  // Login sem SMS: identificador interno determinístico derivado do telefone.
+  const phoneLoginEmail=phone=>phone.replace(/\D/g,'')+'@phone.fumacraft.invalid';;
  function render(){
   const signup=mode==='up', oldLogin=!signup&&legacy;
   app.innerHTML='<div class="card" style="max-width:460px;margin:10px auto">'+
    '<div class="tabs"><button class="'+(signup?'on':'')+'" id="tu" type="button">Criar conta</button><button class="'+(!signup?'on':'')+'" id="ti" type="button">Entrar</button></div>'+
    '<h2 style="margin:6px 0">'+(signup?'Crie a sua loja grátis':oldLogin?'Acesso de conta antiga':'Bem-vindo de volta')+'</h2>'+
    '<p class="small muted">'+(signup?'Registe-se com o seu nome e número de telefone.':'Entre para gerir os seus produtos, serviços e pedidos.')+'</p>'+
-   (oldLogin?'<label>Email da conta antiga</label><input id="em" type="email" autocomplete="email" placeholder="nome@email.com">':(signup?'<label>Nome completo</label><input id="nm" type="text" autocomplete="name" maxlength="80" placeholder="O seu nome">':'')+'<label>Telefone com indicativo do país</label><input id="ph" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="+258 84 123 4567"><p class="small muted" style="margin:5px 0">Use o formato internacional, por exemplo +258, +55, +244 ou +351.</p>')+
+   (oldLogin?'<label>Email da conta antiga</label><input id="em" type="email" autocomplete="email" placeholder="nome@email.com">':(signup?'<label>Nome completo</label><input id="nm" type="text" autocomplete="name" maxlength="80" placeholder="O seu nome">':'')+'<label>Telefone com indicativo do país</label><input id="ph" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="+258 84 123 4567"><p class="small muted" style="margin:5px 0">Use o formato internacional, por exemplo +258, +55, +244 ou +351. Sem SMS, o número não é verificado.</p>')+
    '<label>Senha</label><input id="pw" type="password" autocomplete="'+(signup?'new-password':'current-password')+'" maxlength="'+(oldLogin?'128':'7')+'" '+(oldLogin?'':'inputmode="text" autocapitalize="characters"')+' placeholder="'+(oldLogin?'A sua senha':'6 números + 1 letra maiúscula')+'">'+
    (signup?'<p class="small muted" style="margin:5px 0">A senha deve ter exactamente 7 caracteres: 6 números e 1 letra maiúscula.</p>':'')+
    '<button class="btn w" id="ok" style="margin-top:16px" type="button">'+(signup?'Criar conta': 'Entrar')+'</button>'+
@@ -355,12 +357,12 @@ function auth(mode='up'){
      if(!/^\+[1-9]\d{7,14}$/.test(phone)){toast('Introduza o telefone com indicativo internacional, por exemplo +258…');return}
      if(signup){
       const name=$('#nm').value.trim();if(name.length<2){toast('Introduza o seu nome completo.');return}
-      result=await sb.auth.signUp({phone,password,options:{data:{full_name:name,name}}});
-     }else result=await sb.auth.signInWithPassword({phone,password});
+      result=await sb.auth.signUp({email:phoneLoginEmail(phone),password,options:{data:{full_name:name,name,phone,login_method:'phone_password'}}});
+     }else result=await sb.auth.signInWithPassword({email:phoneLoginEmail(phone),password});
     }
     if(result.error){
      const m=result.error.message||'Não foi possível continuar.';
-     if(/provider.*not enabled|phone.*disabled|unsupported.*phone/i.test(m))toast('O acesso por telefone ainda precisa de ser activado em Supabase → Authentication → Sign In / Providers → Phone.');
+     if(/provider.*not enabled|phone.*disabled|unsupported.*phone/i.test(m))toast('O acesso ainda não está pronto. Confirme que a confirmação de email está desactivada no Supabase.');
      else if(/invalid login|invalid credentials/i.test(m))toast('Telefone/email ou senha incorrectos.');
      else if(/already registered|already exists|user already/i.test(m))toast('Este telefone já tem uma conta. Escolha Entrar.');
      else if(/sms|message.*provider|phone.*provider/i.test(m))toast('O serviço de SMS do Supabase ainda não está configurado para enviar códigos.');
@@ -368,8 +370,8 @@ function auth(mode='up'){
      return;
     }
     if(result.data.session){me=result.data.session.user;go('/painel');return}
-    if(!oldLogin&&result.data.user){showPhoneConfirmation(normalizePhone($('#ph').value));return}
-    toast('A conta foi criada. Verifique a confirmação enviada para continuar.');
+    if(!oldLogin&&result.data.user){toast('Conta criada. Se não entrou automaticamente, a confirmação de email ainda está activa no Supabase.');return}
+    toast('Não foi possível iniciar a sessão.');
    }catch(err){console.error('Erro de autenticação:',err);toast(err?.message||'Erro de ligação. Tente novamente.')}finally{btn.disabled=false;btn.textContent=signup?'Criar conta':'Entrar'}
   };
  }
