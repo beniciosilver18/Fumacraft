@@ -176,7 +176,7 @@ const toast=m=>{const t=document.createElement('div');t.className='toast';t.text
 const daysLeft=s=>Math.max(0,TRIAL_DAYS-Math.floor((Date.now()-new Date(s.trial_started))/864e5));
 const paidLeft=s=>s.paid_until?Math.max(0,Math.ceil((new Date(s.paid_until)-Date.now())/864e5)):0;
 const isPaid=s=>s.plan==='active'&&paidLeft(s)>0;
-const isLive=s=>true; // Todas as lojas permanecem ativas durante o lançamento gratuito.
+const isLive=s=>s.is_public!==false;
 const storeUrl=s=>location.origin+'/'+s.slug;
 function go(p){history.pushState({},'',p);route()}
 document.addEventListener('click',e=>{const a=e.target.closest('a[data-l]');if(a){e.preventDefault();go(a.getAttribute('href'))}});
@@ -449,9 +449,9 @@ async function admin(){
  app.innerHTML='<div class="spin"></div>';
  const rs=await Promise.all([
   sb.rpc('admin_my_permissions'),sb.rpc('admin_stores'),sb.rpc('admin_users_count'),
-  sb.rpc('admin_list_users'),sb.rpc('admin_list_orders'),sb.rpc('admin_list_admin_members')
+  sb.rpc('admin_list_users'),sb.rpc('admin_list_orders'),sb.rpc('admin_list_products'),sb.rpc('admin_list_admin_members')
  ]);
- const pr=rs[0],sr=rs[1],cr=rs[2],ur=rs[3],or=rs[4],ar=rs[5];
+ const pr=rs[0],sr=rs[1],cr=rs[2],ur=rs[3],or=rs[4],productsR=rs[5],ar=rs[6];
  if(pr.error&&!sr.error){
   const oldStores=sr.data||[];
   let fallback='<h1>Painel de Administração</h1><div class="banner">O painel avançado está preparado, mas falta aplicar a migração da base de dados. Vista de compatibilidade:</div><h3>Lojas ('+oldStores.length+')</h3>';
@@ -460,7 +460,7 @@ async function admin(){
  }
  if(sr.error){app.innerHTML='<div class="card"><h2>Acesso restrito</h2><p class="muted">Esta área está disponível apenas para contas autorizadas.</p><a class="btn o" href="/painel" data-l>Voltar à minha loja</a></div>';return}
  const perms=pr.data||{},can=k=>perms[k]===true;
- const stores=sr.data||[],users=ur.error?[]:(ur.data||[]),orders=or.error?[]:(or.data||[]),staff=ar.error?[]:(ar.data||[]);
+ const stores=sr.data||[],users=ur.error?[]:(ur.data||[]),orders=or.error?[]:(or.data||[]),products=productsR.error?[]:(productsR.data||[]),staff=ar.error?[]:(ar.data||[]);
  const root=!ar.error;let page='overview',query='';
  const stamp=v=>v?new Date(v).toLocaleDateString('pt-PT'):'—';
  const card=(label,value)=>'<div class="card" style="text-align:center"><div class="small muted">'+label+'</div><b style="font-size:28px">'+value+'</b></div>';
@@ -470,22 +470,25 @@ async function admin(){
   if(can('stores.view'))h+=navButton('stores','Lojas');
   if(can('users.view'))h+=navButton('users','Utilizadores');
   if(can('orders.view'))h+=navButton('orders','Pedidos');
+  if(can('products.manage'))h+=navButton('products','Produtos');
   if(root)h+=navButton('access','Acessos e permissões');
   h+='</div>';
   if(page==='overview'){
    h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">'+card('Lojas',stores.length)+card('Contas',cr.error?'—':cr.data);
    if(can('users.view'))h+=card('Utilizadores listados',users.length);
    if(can('orders.view'))h+=card('Pedidos recentes',orders.length);
+   if(can('products.manage'))h+=card('Produtos',products.length);
    h+=card('Lançamento','Grátis')+'</div><div class="card" style="margin-top:14px"><h3>Centro de administração</h3><p class="small muted">Acesso separado do painel dos vendedores. As permissões são verificadas no servidor para cada função.</p><div class="row">';
    if(can('stores.view'))h+='<button class="btn s o" data-page="stores">Gerir lojas</button>';
    if(can('users.view'))h+='<button class="btn s o" data-page="users">Ver utilizadores</button>';
    if(can('orders.view'))h+='<button class="btn s o" data-page="orders">Ver pedidos</button>';
+   if(can('products.manage'))h+='<button class="btn s o" data-page="products">Gerir produtos</button>';
    if(root)h+='<button class="btn s o" data-page="access">Gerir acessos</button>';
    h+='</div></div>';
   }else if(page==='stores'&&can('stores.view')){
    h+='<input id="admSearch" placeholder="Pesquisar loja, vendedor ou WhatsApp" value="'+esc(query)+'"><div style="margin-top:12px">';
    const list=stores.filter(x=>(x.name+' '+x.slug+' '+x.email+' '+x.whatsapp).toLowerCase().includes(query.toLowerCase()));
-   h+=list.map(x=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.name)+'</b><br><span class="small muted">'+esc(x.email)+' · '+x.products+' produtos · '+esc(x.currency)+'</span><br><span class="small muted">Criada em '+stamp(x.created_at)+'</span></div><span class="badge on">'+esc(x.plan||'activa')+'</span></div><div class="row" style="margin-top:10px"><a class="btn s o" href="/'+esc(x.slug)+'" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/'+esc(x.whatsapp)+'" target="_blank" rel="noopener">WhatsApp</a>'+(can('stores.manage')?'<button class="btn s r" data-del-store="'+x.id+'" data-name="'+esc(x.name)+'">Eliminar loja</button>':'')+'</div>'+(can('orders.manage')?'<details><summary>Limpeza de pedidos</summary><div class="row" style="margin-top:8px"><button class="btn s o" data-purge="30" data-id="'+x.id+'">Apagar +30 dias</button><button class="btn s r" data-purge="0" data-id="'+x.id+'">Apagar todos</button></div></details>':'')+'</div>').join('')||'<p class="muted">Nenhuma loja encontrada.</p>';
+   h+=list.map(x=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.name)+'</b><br><span class="small muted">'+esc(x.email)+' · '+x.products+' produtos · '+esc(x.currency)+'</span><br><span class="small muted">Criada em '+stamp(x.created_at)+'</span></div><span class="badge on">'+esc(x.plan||'activa')+'</span></div><div class="row" style="margin-top:10px"><a class="btn s o" href="/'+esc(x.slug)+'" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/'+esc(x.whatsapp)+'" target="_blank" rel="noopener">WhatsApp</a>'+(can('stores.manage')?'<button class="btn s o" data-store-visibility="'+x.id+'" data-visible="'+(x.is_public===false?'false':'true')+'">'+(x.is_public===false?'Publicar loja':'Ocultar loja')+'</button><button class="btn s r" data-del-store="'+x.id+'" data-name="'+esc(x.name)+'">Eliminar loja</button>':'')+'</div>'+(can('orders.manage')?'<details><summary>Limpeza de pedidos</summary><div class="row" style="margin-top:8px"><button class="btn s o" data-purge="30" data-id="'+x.id+'">Apagar +30 dias</button><button class="btn s r" data-purge="0" data-id="'+x.id+'">Apagar todos</button></div></details>':'')+'</div>').join('')||'<p class="muted">Nenhuma loja encontrada.</p>';
    h+='</div>';
   }else if(page==='users'&&can('users.view')){
    h+='<input id="admSearch" placeholder="Pesquisar por email" value="'+esc(query)+'"><div style="margin-top:12px">';
@@ -496,6 +499,11 @@ async function admin(){
    h+='<input id="admSearch" placeholder="Pesquisar loja, código ou cliente" value="'+esc(query)+'"><div style="margin-top:12px">';
    const list=orders.filter(x=>(x.store_name+' '+x.store_slug+' '+x.code+' '+x.customer+' '+x.status).toLowerCase().includes(query.toLowerCase()));
    h+=list.map(x=>'<div class="card" style="margin-bottom:9px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.store_name)+'</b><div class="small muted">Pedido '+esc(x.code)+' · '+esc(x.customer||'Cliente')+' · '+stamp(x.created_at)+'</div></div><b>'+fmt(x.total,x.currency||'USD')+'</b></div><div class="row" style="margin-top:8px"><span class="badge">'+esc(x.status)+'</span>'+(can('orders.manage')?'<select data-order="'+x.id+'"><option value="novo" '+(x.status==='novo'?'selected':'')+'>Novo</option><option value="pronto" '+(x.status==='pronto'?'selected':'')+'>Pronto</option><option value="entregue" '+(x.status==='entregue'?'selected':'')+'>Entregue</option></select>':'')+'</div></div>').join('')||'<p class="muted">Nenhum pedido encontrado.</p>';
+   h+='</div>';
+  }else if(page==='products'&&can('products.manage')){
+   h+='<input id="admSearch" placeholder="Pesquisar produto ou loja" value="'+esc(query)+'"><div style="margin-top:12px">';
+   const list=products.filter(x=>(x.name+' '+x.store_name+' '+x.store_slug).toLowerCase().includes(query.toLowerCase()));
+   h+=list.map(x=>'<div class="card" style="margin-bottom:9px"><b>'+esc(x.name)+'</b><div class="small muted">'+esc(x.store_name)+' · '+fmt(x.price,x.currency)+' · '+stamp(x.created_at)+'</div><div class="row" style="margin-top:8px"><span class="badge '+(x.active?'on':'')+'">'+(x.active?'Visível':'Oculto')+'</span><button class="btn s o" data-product-toggle="'+x.id+'" data-active="'+(x.active?'true':'false')+'">'+(x.active?'Ocultar':'Publicar')+'</button><button class="btn s r" data-product-delete="'+x.id+'" data-product-name="'+esc(x.name)+'">Apagar</button></div></div>').join('')||'<p class="muted">Nenhum produto encontrado.</p>';
    h+='</div>';
   }else if(page==='access'&&root){
    const keys=[['dashboard.view','Ver painel'],['stores.view','Ver lojas'],['stores.manage','Gerir lojas'],['users.view','Ver utilizadores'],['orders.view','Ver pedidos'],['orders.manage','Gerir pedidos'],['products.manage','Gerir produtos'],['billing.view','Ver pagamentos'],['billing.manage','Gerir pagamentos']];
@@ -508,6 +516,9 @@ async function admin(){
   app.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;query='';render()});
   const inp=$('#admSearch');if(inp)inp.oninput=()=>{query=inp.value;const pos=inp.selectionStart;render();const ni=$('#admSearch');ni.focus();ni.setSelectionRange(pos,pos)};
   app.querySelectorAll('[data-del-store]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar a loja '+b.dataset.name+' e os produtos/pedidos associados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_store',{sid:b.dataset.delStore});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Loja eliminada');admin()});
+  app.querySelectorAll('[data-store-visibility]').forEach(b=>b.onclick=async()=>{const visible=b.dataset.visible!=='true',label=visible?'publicar':'ocultar';if(!confirm('Pretende '+label+' esta loja?'))return;b.disabled=true;const r=await sb.rpc('admin_set_store_visibility',{p_store_id:b.dataset.storeVisibility,p_is_public:visible});if(r.error){b.disabled=false;return toast(r.error.message)}toast(visible?'Loja publicada':'Loja ocultada');admin()});
+  app.querySelectorAll('[data-product-toggle]').forEach(b=>b.onclick=async()=>{const active=b.dataset.active!=='true';b.disabled=true;const r=await sb.rpc('admin_update_product_visibility',{p_product_id:b.dataset.productToggle,p_active:active});if(r.error){b.disabled=false;return toast(r.error.message)}toast(active?'Produto publicado':'Produto ocultado');admin()});
+  app.querySelectorAll('[data-product-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Apagar o produto '+b.dataset.productName+'?'))return;b.disabled=true;const r=await sb.rpc('admin_delete_product',{p_product_id:b.dataset.productDelete});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Produto apagado');admin()});
   app.querySelectorAll('[data-del-user]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar definitivamente a conta '+b.dataset.email+' e os respectivos dados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_user_by_id',{p_user_id:b.dataset.delUser});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Conta eliminada');admin()});
   app.querySelectorAll('[data-purge]').forEach(b=>b.onclick=async()=>{const days=Number(b.dataset.purge);if(!confirm(days?'Apagar pedidos com mais de 30 dias?':'Apagar todos os pedidos desta loja?'))return;b.disabled=true;const r=await sb.rpc('admin_delete_orders',{sid:b.dataset.id,older_days:days});if(r.error){b.disabled=false;return toast(r.error.message)}toast((r.data||0)+' pedidos apagados');admin()});
   app.querySelectorAll('[data-order]').forEach(el=>el.onchange=async()=>{const r=await sb.rpc('admin_update_order_status',{p_order_id:el.dataset.order,p_status:el.value});if(r.error){toast(r.error.message);admin();return}toast('Estado do pedido actualizado')});
