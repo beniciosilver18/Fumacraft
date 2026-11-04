@@ -760,7 +760,20 @@ ${mine.length?`<details style="margin-top:12px"><summary>🔑 Os meus códigos d
  paint();
 })();
 
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+if('serviceWorker' in navigator){
+ window.addEventListener('load',async()=>{
+  try{
+   const reg=await navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'});
+   reg.update().catch(()=>{});
+   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})});
+   setInterval(()=>reg.update().catch(()=>{}),5*60*1000);
+   let refreshing=false;
+   navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(refreshing)return;refreshing=true;window.location.reload();
+   });
+  }catch(e){console.warn('Fumacraft update check:',e)}
+ });
+}
 </script>
 </body>
 </html>
