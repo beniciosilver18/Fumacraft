@@ -1,5 +1,5 @@
-const CACHE_VERSION='fumacraft-v12';
-const CORE_ASSETS=['/','/icon.svg','/icon-192.png','/manifest.json'];
+const CACHE_VERSION='fumacraft-v13';
+const CORE_ASSETS=['/','/icon.svg','/manifest.json'];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
   const cache=await caches.open(CACHE_VERSION);
@@ -21,7 +21,7 @@ self.addEventListener('fetch',event=>{
  event.respondWith((async()=>{
   try{
    const response=await fetch(request,{cache:request.mode==='navigate'?'no-store':'no-cache'});
-   if(response&&response.ok&&request.method==='GET'){
+   if(response&&response.ok){
     const cache=await caches.open(CACHE_VERSION);
     cache.put(request,response.clone()).catch(()=>{});
    }
@@ -45,7 +45,7 @@ self.addEventListener('notificationclick',event=>{
 self.addEventListener('push',event=>{
  let data={};try{data=event.data.json()}catch(error){data={title:'Fumacraft',body:event.data&&event.data.text()}}
  event.waitUntil(self.registration.showNotification(data.title||'Fumacraft',{
-  body:data.body||'',icon:'/icon-192.png',badge:'/icon-192.png',
+  body:data.body||'',icon:'/icon.svg',badge:'/icon.svg',
   data:{url:data.url||'/painel'},vibrate:[200,100,200],requireInteraction:true
  }));
 });
