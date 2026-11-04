@@ -354,9 +354,17 @@ function auth(mode='up'){
   if(error)return toast(error.message);toast('Enviámos um link para o seu email')};
 }
 /* ===== PANEL ===== */
-async function panel(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
- const {data:s}=await sb.from('stores').select('*').eq('owner',me.id).maybeSingle();
- if(!s)return storeForm(null);
+async function panel(){app.innerHTML='<div class="spin"></div>';
+ // Confirma a sessão directamente com o Supabase antes de procurar a loja.
+ const sessionResult=await sb.auth.getSession();
+ if(sessionResult.error){app.innerHTML='<div class="card"><h2>Não foi possível confirmar a sessão</h2><p class="muted">Verifique a ligação à internet e tente novamente.</p><button class="btn w" onclick="panel()">Tentar novamente</button></div>';return}
+ me=sessionResult.data.session?.user||me;
+ if(!me)return go('/entrar?modo=entrar');
+ const storeResult=await sb.from('stores').select('*').eq('owner',me.id).limit(2);
+ if(storeResult.error){console.error('Erro ao carregar loja:',storeResult.error);app.innerHTML='<div class="card"><h2>Não foi possível carregar a sua loja</h2><p class="muted">A sua conta continua activa. Não crie outra loja. Verifique a ligação e tente novamente.</p><button class="btn w" onclick="panel()">Tentar novamente</button></div>';return}
+ const stores=storeResult.data||[];
+ if(!stores.length)return storeForm(null);
+ const s=stores[0];
  const {data:ps}=await sb.from('products').select('*').eq('store_id',s.id).order('sort').order('created_at');
  const left=daysLeft(s),url=storeUrl(s);
  const pl=paidLeft(s);
