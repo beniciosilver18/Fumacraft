@@ -321,37 +321,65 @@ function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 /* ===== AUTH ===== */
 function auth(mode='up'){
  if(me)return go('/painel');
- app.innerHTML=`<div class="card" style="max-width:440px;margin:10px auto">
- <div class="tabs"><button class="${mode==='up'?'on':''}" id="tu">Criar conta</button><button class="${mode==='in'?'on':''}" id="ti">Entrar</button></div>
- <h2 style="margin:6px 0">${mode==='up'?'Crie a sua loja grátis':'Bem-vindo de volta'}</h2>
- <p class="small muted">${mode==='up'?'Crie uma conta de vendedor para configurar e gerir a sua própria loja.':'Entre para gerir os seus produtos, serviços e pedidos.'}</p>
- <button class="btn o w" id="gg" type="button">🌐 Continuar com Google</button>
- <div class="small muted" style="text-align:center;margin:12px 0">ou use o seu email</div>
- <label>Email</label><input id="em" type="email" autocomplete="email" placeholder="nome@email.com">
- <label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
- <button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
- ${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':'<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>'}
- <p class="small muted" style="text-align:center;margin:14px 0 4px">${mode==='up'?'Já tens uma loja? <a href="/entrar?modo=entrar" data-l><b>Entrar na minha loja</b></a>':'Ainda não tens loja? <a href="/entrar?modo=criar" data-l><b>Criar a minha loja</b></a>'}</p><a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
- $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
- $('#gg').onclick=async()=>{const b=$('#gg');b.disabled=true;b.textContent='A abrir o Google…';
-  const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/painel'}});
-  if(error){b.disabled=false;b.textContent='🌐 Continuar com Google';toast(error.message.includes('provider is not enabled')?'O acesso Google ainda não está ativado nas definições de autenticação.':error.message)}};
- $('#ok').onclick=async()=>{const email=$('#em').value.trim(),password=$('#pw').value;
-  if(!email||password.length<6)return toast('Introduza um email válido e uma senha com pelo menos 6 caracteres');
-  const b=$('#ok');b.disabled=true;b.textContent=mode==='up'?'A criar conta…':'A entrar…';
-  const r=mode==='up'?await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/painel'}}):await sb.auth.signInWithPassword({email,password});
-  b.disabled=false;b.textContent=mode==='up'?'Criar conta':'Entrar';
-  if(r.error){const message=r.error.message||'Não foi possível continuar';return toast(message.includes('Invalid login')?'Email ou senha incorretos':message.includes('already registered')?'Este email já tem uma conta. Entre.':message)}
-  if(!r.data.session){
-   if(mode==='up'){app.innerHTML=`<div class="card" style="max-width:440px;margin:24px auto;text-align:center"><div style="font-size:42px">📩</div><h2>Confirme o seu email</h2><p class="muted">A conta foi criada. Abra a mensagem enviada para <b>${esc(email)}</b> e confirme o endereço antes de entrar.</p><button class="btn w" id="backLogin">Já confirmei — entrar</button><a href="/" data-l class="btn o w" style="margin-top:8px">Voltar ao início</a></div>`;
-    $('#backLogin').onclick=()=>auth('in');return}
-   return toast('Não foi possível iniciar a sessão. Verifique o email e a senha.');
-  }
-  me=r.data.session.user;go('/painel');
- };
- const fg=$('#fg');if(fg)fg.onclick=async e=>{e.preventDefault();const email=$('#em').value.trim();if(!email)return toast('Escreva o seu email');
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.origin+'/painel'});
-  if(error)return toast(error.message);toast('Enviámos um link para o seu email')};
+ let legacy=false;
+ const passwordOk=p=>/^(?=(?:.*\\d){6}$)(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
+ const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);if(/^\\d{8,15}$/.test(p))p='+'+p;return p};
+ function render(){
+  const signup=mode==='up', oldLogin=!signup&&legacy;
+  app.innerHTML='<div class="card" style="max-width:460px;margin:10px auto">'+
+   '<div class="tabs"><button class="'+(signup?'on':'')+'" id="tu" type="button">Criar conta</button><button class="'+(!signup?'on':'')+'" id="ti" type="button">Entrar</button></div>'+
+   '<h2 style="margin:6px 0">'+(signup?'Crie a sua loja grátis':oldLogin?'Acesso de conta antiga':'Bem-vindo de volta')+'</h2>'+
+   '<p class="small muted">'+(signup?'Registe-se com o seu nome e número de telefone.':'Entre para gerir os seus produtos, serviços e pedidos.')+'</p>'+
+   (oldLogin?'<label>Email da conta antiga</label><input id="em" type="email" autocomplete="email" placeholder="nome@email.com">':(signup?'<label>Nome completo</label><input id="nm" type="text" autocomplete="name" maxlength="80" placeholder="O seu nome">':'')+'<label>Telefone com indicativo do país</label><input id="ph" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="+258 84 123 4567"><p class="small muted" style="margin:5px 0">Use o formato internacional, por exemplo +258, +55, +244 ou +351.</p>')+
+   '<label>Senha</label><input id="pw" type="password" autocomplete="'+(signup?'new-password':'current-password')+'" maxlength="'+(oldLogin?'128':'7')+'" '+(oldLogin?'':'inputmode="text" autocapitalize="characters"')+' placeholder="'+(oldLogin?'A sua senha':'6 números + 1 letra maiúscula')+'">'+
+   (signup?'<p class="small muted" style="margin:5px 0">A senha deve ter exactamente 7 caracteres: 6 números e 1 letra maiúscula.</p>':'')+
+   '<button class="btn w" id="ok" style="margin-top:16px" type="button">'+(signup?'Criar conta': 'Entrar')+'</button>'+
+   (signup?'<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>':'')+
+   (oldLogin?'<p class="small muted" style="text-align:center"><a href="#" id="newLogin">Voltar ao acesso por telefone</a></p>':(!signup?'<p class="small muted" style="text-align:center"><a href="#" id="oldLogin">Tenho uma conta antiga? Entrar com email</a></p>':''))+
+   '<p class="small muted" style="text-align:center;margin:14px 0 4px">'+(signup?'Já tens uma conta? <a href="/entrar?modo=entrar" data-l><b>Entrar</b></a>':'Ainda não tens conta? <a href="/entrar?modo=criar" data-l><b>Criar conta</b></a>')+'</p>'+
+   '<a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>';
+  $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
+  const old=$('#oldLogin');if(old)old.onclick=e=>{e.preventDefault();legacy=true;render()};
+  const newer=$('#newLogin');if(newer)newer.onclick=e=>{e.preventDefault();legacy=false;render()};
+  $('#ok').onclick=async()=>{
+   const btn=$('#ok');btn.disabled=true;btn.textContent=signup?'A criar conta…':'A entrar…';
+   try{
+    const password=$('#pw').value;
+    if(!oldLogin&&!passwordOk(password)){toast('A senha deve ter 6 números e 1 letra maiúscula, totalizando 7 caracteres.');return}
+    let result;
+    if(oldLogin){
+     const email=$('#em').value.trim();if(!email){toast('Introduza o email da sua conta antiga.');return}
+     result=await sb.auth.signInWithPassword({email,password});
+    }else{
+     const phone=normalizePhone($('#ph').value);
+     if(!/^\\+[1-9]\\d{7,14}$/.test(phone)){toast('Introduza o telefone com indicativo internacional, por exemplo +258…');return}
+     if(signup){
+      const name=$('#nm').value.trim();if(name.length<2){toast('Introduza o seu nome completo.');return}
+      result=await sb.auth.signUp({phone,password,options:{data:{full_name:name,name}}});
+     }else result=await sb.auth.signInWithPassword({phone,password});
+    }
+    if(result.error){
+     const m=result.error.message||'Não foi possível continuar.';
+     if(/provider.*not enabled|phone.*disabled|unsupported.*phone/i.test(m))toast('O acesso por telefone ainda precisa de ser activado em Supabase → Authentication → Sign In / Providers → Phone.');
+     else if(/invalid login|invalid credentials/i.test(m))toast('Telefone/email ou senha incorrectos.');
+     else if(/already registered|already exists|user already/i.test(m))toast('Este telefone já tem uma conta. Escolha Entrar.');
+     else if(/sms|message.*provider|phone.*provider/i.test(m))toast('O serviço de SMS do Supabase ainda não está configurado para enviar códigos.');
+     else toast(m);
+     return;
+    }
+    if(result.data.session){me=result.data.session.user;go('/painel');return}
+    if(!oldLogin&&result.data.user){showPhoneConfirmation(normalizePhone($('#ph').value));return}
+    toast('A conta foi criada. Verifique a confirmação enviada para continuar.');
+   }catch(err){console.error('Erro de autenticação:',err);toast(err?.message||'Erro de ligação. Tente novamente.')}finally{btn.disabled=false;btn.textContent=signup?'Criar conta':'Entrar'}
+  };
+ }
+ async function showPhoneConfirmation(phone){
+  app.innerHTML='<div class="card" style="max-width:440px;margin:24px auto;text-align:center"><div style="font-size:40px">📱</div><h2>Confirme o seu telefone</h2><p class="muted">Introduza o código enviado por SMS para <b>'+esc(phone)+'</b>.</p><label style="text-align:left">Código de confirmação</label><input id="phoneCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Código SMS"><button class="btn w" id="verifyPhone" style="margin-top:12px">Confirmar telefone</button><button class="btn o w" id="resendPhone" style="margin-top:8px">Reenviar código</button><button class="btn o w" id="backAuth" style="margin-top:8px">Voltar</button></div>';
+  $('#verifyPhone').onclick=async()=>{const token=$('#phoneCode').value.trim();if(!/^\\d{4,8}$/.test(token))return toast('Introduza o código recebido por SMS.');const b=$('#verifyPhone');b.disabled=true;try{const r=await sb.auth.verifyOtp({phone,token,type:'sms'});if(r.error)return toast(r.error.message);me=r.data.session?.user||r.data.user;go('/painel')}catch(e){toast(e.message||'Não foi possível confirmar o telefone.')}finally{b.disabled=false}};
+  $('#resendPhone').onclick=async()=>{const b=$('#resendPhone');b.disabled=true;try{const r=await sb.auth.resend({type:'sms',phone});if(r.error)toast(r.error.message);else toast('Código reenviado.')}catch(e){toast(e.message||'Não foi possível reenviar.')}finally{b.disabled=false}};
+  $('#backAuth').onclick=()=>auth('in');
+ }
+ render();
 }
 /* ===== PANEL ===== */
 async function panel(){app.innerHTML='<div class="spin"></div>';
