@@ -201,7 +201,7 @@ function route(){document.querySelector('.logo').lastChild.textContent='Fumacraf
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
  $('#hb').classList.toggle('hide',isStore);$('#exploreNav').classList.toggle('hide',isStore);$('#hb').textContent=me?'Minha loja':'Sou vendedor';
  if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
- if(p==='')return landing();if(p==='entrar')return auth();if(p==='painel')return panel();if(p==='precos'||p==='planos')return go(me?'/painel':'/');if(p==='admin')return admin();if(p==='explorar')return explore();
+ if(p==='')return landing();if(p==='entrar')return auth(new URLSearchParams(location.search).get('modo')==='entrar'?'in':'up');if(p==='painel')return panel();if(p==='precos'||p==='planos')return go(me?'/painel':'/');if(p==='admin')return admin();if(p==='explorar')return explore();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
  return loadStore(p);}
 
@@ -215,6 +215,7 @@ function landing(){document.title='Fumacraft — A tua loja online começa aqui'
    <p>Cria uma página profissional para os teus produtos ou serviços. Recebe visitantes, apresenta o que vendes e transforma o interesse em pedidos e marcações pelo WhatsApp.</p>
    <div class="row" style="justify-content:flex-start;max-width:480px;margin:0 auto 12px">
     <a class="btn y" href="/entrar" data-l>🚀 Criar a minha loja</a>
+    <a class="btn o" href="/entrar?modo=entrar" data-l>Já tenho loja · Entrar</a>
     <a class="btn o" href="/exemplo" data-l>Ver demonstração</a>
    </div>
    <div class="small" style="color:#e8f5ee">Sem programação · Funciona no telemóvel · Link para partilhar</div>
@@ -236,7 +237,7 @@ function landing(){document.title='Fumacraft — A tua loja online começa aqui'
 <h2 style="text-align:center;margin-top:22px">O que procuras fazer hoje?</h2>
 <div class="choice-grid">
  <a class="choice-card" href="/explorar" data-l><span style="font-size:28px">🛍️</span><strong>Quero comprar ou encontrar um serviço</strong><small>Explorar lojas, produtos, serviços e contactos.</small></a>
- <a class="choice-card primary" href="/entrar" data-l><span style="font-size:28px">🏪</span><strong>Quero criar a minha loja</strong><small>Apresentar o meu negócio e receber clientes.</small></a>
+ <div class="choice-card primary"><span style="font-size:28px">🏪</span><strong>Tenho um negócio</strong><small>Cria uma loja nova ou entra para gerir a tua loja existente.</small><div class="row" style="justify-content:center;margin-top:10px"><a class="btn y" href="/entrar?modo=criar" data-l>Criar loja</a><a class="btn o" href="/entrar?modo=entrar" data-l>Já tenho loja · Entrar</a></div></div>
 </div>
 
 <h2>Uma plataforma para vários tipos de pequenos negócios</h2>
