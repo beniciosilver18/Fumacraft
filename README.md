@@ -28,3 +28,16 @@ O frontend é publicado pelo projecto Cloudflare Pages `fumacraft`, ligado à br
 Não executar `npx wrangler deploy` para publicar este frontend: esse comando publica Workers. A publicação do site deve usar Cloudflare Pages.
 
 O lançamento permanece gratuito. A monetização e os pagamentos de subscrição continuam desligados.
+
+## Perfil público e administração
+
+- Cada vendedor pode criar a loja e voltar ao painel para editar o perfil, logótipo, capa, descrição e links opcionais de Instagram, Facebook, TikTok, Telegram e grupo da loja.
+- Os links sociais aparecem como botões na página pública da loja.
+- O painel administrativo fica em `/admin`, separado do painel do vendedor.
+- O painel administrativo suporta gestão de lojas (publicar/ocultar e eliminar), moderação de produtos, consulta e actualização de pedidos, consulta de utilizadores e gestão de membros da equipa com permissões granulares.
+- Só o administrador principal pode conceder ou remover acessos administrativos e eliminar contas de utilizadores.
+- As permissões são verificadas pelas funções SQL, não apenas escondidas na interface.
+
+### Migração de base de dados obrigatória
+
+Aplicar uma única vez a migração `supabase/migrations/20261104120000_admin_rbac_and_social_links.sql` no projecto Supabase usado pelo Fumacraft. Ela adiciona os links sociais, visibilidade pública das lojas, tabela de equipa administrativa e RPCs protegidos por permissões. O frontend mantém uma vista administrativa de compatibilidade enquanto esta migração ainda não estiver aplicada; os novos controlos e o salvamento de redes sociais dependem dela.
