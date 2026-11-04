@@ -331,7 +331,7 @@ function auth(mode='up'){
  <label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
  <button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
  ${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':'<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>'}
- <p class="small muted" style="text-align:center;margin:14px 0 4px">Já tens uma loja? <a href="/entrar?modo=entrar" data-l><b>Entrar na minha loja</b></a></p><a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
+ <p class="small muted" style="text-align:center;margin:14px 0 4px">${mode==='up'?'Já tens uma loja? <a href="/entrar?modo=entrar" data-l><b>Entrar na minha loja</b></a>':'Ainda não tens loja? <a href="/entrar?modo=criar" data-l><b>Criar a minha loja</b></a>'}</p><a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
  $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
  $('#gg').onclick=async()=>{const b=$('#gg');b.disabled=true;b.textContent='A abrir o Google…';
   const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/painel'}});
@@ -422,7 +422,7 @@ function storeForm(s){
   b.disabled=true;b.textContent='A guardar…';
   try{if(logo)o.logo_url=await upload(logo,me.id,'logo');if(cover)o.cover_url=await upload(cover,me.id,'cover');
    const r=n?await sb.from('stores').insert({...o,owner:me.id}):await sb.from('stores').update(o).eq('id',s.id);
-   if(r.error){if(r.error.code==='23505')throw new Error('Este link já existe, escolha outro');throw r.error}
+   if(r.error){if(r.error.code==='23505')throw new Error('Este link já existe, escolha outro');if(/social_links/i.test(r.error.message||''))throw new Error('A actualização da base de dados ainda não foi aplicada. Os links sociais só poderão ser guardados depois dessa etapa.');throw r.error}
    toast(n?'Loja criada! 🎉':'Guardado');panel();
   }catch(e){toast(e.message||'Erro');b.disabled=false;b.textContent='Tentar de novo'}
  };
@@ -509,7 +509,7 @@ async function admin(){
    const keys=[['dashboard.view','Ver painel'],['stores.view','Ver lojas'],['stores.manage','Gerir lojas'],['users.view','Ver utilizadores'],['orders.view','Ver pedidos'],['orders.manage','Gerir pedidos'],['products.manage','Gerir produtos'],['billing.view','Ver pagamentos'],['billing.manage','Gerir pagamentos']];
    h+='<div class="card"><h3>Adicionar membro da equipa</h3><label>Email da conta já registada</label><input id="staffEmail" type="email" placeholder="pessoa@email.com"><label>Função</label><select id="staffRole"><option value="admin">Administrador</option><option value="support">Suporte</option><option value="moderator">Moderador</option><option value="finance">Financeiro</option></select><p class="small muted">Marca apenas as permissões que esta pessoa deve receber.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">';
    h+=keys.map(x=>'<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" class="staffPerm" value="'+x[0]+'" style="width:18px;height:18px">'+x[1]+'</label>').join('');
-   h+='</div><button class="btn w" id="saveStaff" style="margin-top:14px">Guardar permissões</button></div><h3>Equipa com acesso</h3>';
+   h+='</div><p class="small muted">A gestão de pagamentos permanece desligada durante o lançamento gratuito.</p><button class="btn w" id="saveStaff" style="margin-top:14px">Guardar permissões</button></div><h3>Equipa com acesso</h3>';
    h+=staff.map(x=>'<div class="card" style="margin-bottom:9px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.email)+'</b><div class="small muted">Função: '+esc(x.role)+'</div><div class="small muted">Permissões especiais: '+Object.entries(x.permissions||{}).filter(y=>y[1]===true).map(y=>y[0]).join(', ')+'</div></div><button class="btn s r" data-remove-staff="'+esc(x.email)+'">Remover acesso</button></div></div>').join('')||'<p class="muted">Ainda não há membros adicionais na equipa.</p>';
   }
   app.innerHTML=h;
@@ -522,7 +522,7 @@ async function admin(){
   app.querySelectorAll('[data-del-user]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar definitivamente a conta '+b.dataset.email+' e os respectivos dados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_user_by_id',{p_user_id:b.dataset.delUser});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Conta eliminada');admin()});
   app.querySelectorAll('[data-purge]').forEach(b=>b.onclick=async()=>{const days=Number(b.dataset.purge);if(!confirm(days?'Apagar pedidos com mais de 30 dias?':'Apagar todos os pedidos desta loja?'))return;b.disabled=true;const r=await sb.rpc('admin_delete_orders',{sid:b.dataset.id,older_days:days});if(r.error){b.disabled=false;return toast(r.error.message)}toast((r.data||0)+' pedidos apagados');admin()});
   app.querySelectorAll('[data-order]').forEach(el=>el.onchange=async()=>{const r=await sb.rpc('admin_update_order_status',{p_order_id:el.dataset.order,p_status:el.value});if(r.error){toast(r.error.message);admin();return}toast('Estado do pedido actualizado')});
-  const save=$('#saveStaff');if(save)save.onclick=async()=>{const email=$('#staffEmail').value.trim(),role=$('#staffRole').value,permissions={};if(!email)return toast('Indica o email da conta');app.querySelectorAll('.staffPerm').forEach(x=>permissions[x.value]=x.checked);save.disabled=true;const r=await sb.rpc('admin_save_admin_member',{p_email:email,p_role:role,p_permissions:permissions});if(r.error){save.disabled=false;return toast(r.error.message)}toast('Permissões guardadas');admin()};
+  const save=$('#saveStaff');if(save)save.onclick=async()=>{const email=$('#staffEmail').value.trim(),role=$('#staffRole').value,permissions={};if(!email)return toast('Indica o email da conta');app.querySelectorAll('.staffPerm').forEach(x=>permissions[x.value]=x.checked);if(!permissions['dashboard.view'])return toast('Selecciona também Ver painel para conceder acesso ao painel administrativo.');save.disabled=true;const r=await sb.rpc('admin_save_admin_member',{p_email:email,p_role:role,p_permissions:permissions});if(r.error){save.disabled=false;return toast(r.error.message)}toast('Permissões guardadas');admin()};
   app.querySelectorAll('[data-remove-staff]').forEach(b=>b.onclick=async()=>{if(!confirm('Remover o acesso administrativo de '+b.dataset.removeStaff+'?'))return;const r=await sb.rpc('admin_remove_admin_member',{p_email:b.dataset.removeStaff});if(r.error)return toast(r.error.message);toast('Acesso removido');admin()});
  }
  render();
