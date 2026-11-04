@@ -7,9 +7,9 @@
 <meta name="description" content="Crie a sua loja online grátis, partilhe um link e receba pedidos organizados direto no WhatsApp.">
 <meta property="og:title" content="Fumacraft — Sua loja no WhatsApp em 5 minutos">
 <meta property="og:description" content="Produtos com fotos, carrinho e pedidos direto no seu WhatsApp.">
-<meta name="theme-color" content="#0f7a4a">
+<meta name="theme-color" content="#111111">
 <link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icon.svg"><link rel="apple-touch-icon" href="/icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" type="image/svg+xml" href="/icon.svg"><link rel="apple-touch-icon" href="/icon.svg"><meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--g:#0f7a4a;--g1:#0b5e39;--g2:#e8f5ee;--y:#f5b72f;--t:#16201b;--m:#5d6b64;--b:#e3e8e5;--r:16px;--sh:0 6px 24px rgba(16,40,28,.08)}
@@ -315,7 +315,7 @@ function landing(){document.title='Fumacraft — A tua loja online começa aqui'
 `}
 function planCard(){return `<div class="card plan"><div class="muted">Plano Loja</div><div class="big">${PRICE}<span style="font-size:16px;font-weight:600">/mês</span></div>
 <ul><li>Produtos com fotos, ilimitados</li><li>Pedidos ilimitados no WhatsApp</li><li>Link próprio da loja</li><li>Logo e capa personalizadas</li><li>Entrega ou levantamento</li><li>Qualquer moeda</li></ul>
-<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Em Moçambique: ${PAGAR_PRICE} por 30 dias com M-Pesa ou eMola. Sem fidelização.</p></div>`}
+<a class="btn w" href="/entrar" data-l>Testar ${TRIAL_DAYS} dias grátis</a><p class="small muted">Disponível internacionalmente. Os meios de pagamento variam conforme o país.</p></div>`}
 function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 
 /* ===== AUTH ===== */
@@ -393,7 +393,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
  app.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>productForm(s,ps.find(p=>p.id===b.dataset.e)));}
 
 function storeForm(s){
- const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'MZN',description:'',logo_url:'',cover_url:'',social_links:{},delivery:true,pickup:true,delivery_fee:0};
+ const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'USD',description:'',logo_url:'',cover_url:'',social_links:{},delivery:true,pickup:true,delivery_fee:0};
  const oldDelivery=s.delivery!==false,oldPickup=s.pickup!==false;
  const mode=!oldDelivery&&!oldPickup?'booking':oldDelivery&&oldPickup?'both':oldDelivery?'delivery':'pickup';
  let logo=null,cover=null;history.replaceState({},'','/painel');
