@@ -199,7 +199,7 @@ sb.auth.onAuthStateChange((_e,s)=>{me=s?.user||null});
 function route(){document.querySelector('.logo').lastChild.textContent='Fumacraft';const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,''));window.scrollTo(0,0);
  const home=p==='';$('#bk').classList.toggle('hide',home);
  const isStore=!RESERVED.includes(p)&&!p.includes('/')||p==='exemplo';
- $('#hb').classList.toggle('hide',isStore);$('#exploreNav').classList.toggle('hide',isStore);$('#hb').textContent=me?'Minha loja':'Sou vendedor';
+ $('#hb').classList.toggle('hide',isStore);$('#exploreNav').classList.toggle('hide',isStore);$('#hb').href=me?'/painel':'/entrar?modo=entrar';$('#hb').textContent=me?'Minha loja':'Entrar na minha loja';
  if(isStore&&!history.state)$('#bk').classList.add('hide');$('#ft').classList.toggle('hide',isStore);
  if(p==='')return landing();if(p==='entrar')return auth(new URLSearchParams(location.search).get('modo')==='entrar'?'in':'up');if(p==='painel')return panel();if(p==='precos'||p==='planos')return go(me?'/painel':'/');if(p==='admin')return admin();if(p==='explorar')return explore();
  if(p==='exemplo')return storefront(DEMO,true);if(p==='index.html')return go('/');
@@ -331,7 +331,7 @@ function auth(mode='up'){
  <label>Senha</label><input id="pw" type="password" autocomplete="${mode==='up'?'new-password':'current-password'}" placeholder="Mínimo 6 caracteres">
  <button class="btn w" id="ok" style="margin-top:16px">${mode==='up'?'Criar conta':'Entrar'}</button>
  ${mode==='in'?'<p style="text-align:center"><a href="#" id="fg" class="small">Esqueci a senha</a></p>':'<p class="small muted" style="text-align:center">A criação e utilização da loja são grátis durante o lançamento.</p>'}
- <a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
+ <p class="small muted" style="text-align:center;margin:14px 0 4px">Já tens uma loja? <a href="/entrar?modo=entrar" data-l><b>Entrar na minha loja</b></a></p><a href="/explorar" data-l class="btn o w" style="margin-top:8px">Continuar como visitante</a></div>`;
  $('#tu').onclick=()=>auth('up');$('#ti').onclick=()=>auth('in');
  $('#gg').onclick=async()=>{const b=$('#gg');b.disabled=true;b.textContent='A abrir o Google…';
   const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/painel'}});
@@ -373,7 +373,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
 <button class="btn o w" id="qr" style="margin-top:10px">📷 Ler QR do cliente</button><div id="nb"></div><div id="ol" style="margin-top:10px"></div>
 <div class="row" style="margin-top:12px;align-items:center"><label class="small" style="flex:1 1 180px">🗑️ Apagar pedidos entregues automaticamente<select id="ret" style="margin-top:4px">${[[0,'Nunca'],[7,'Depois de 7 dias'],[30,'Depois de 30 dias']].map(([v,t])=>`<option value="${v}" ${(s.order_retention_days||0)==v?'selected':''}>${t}</option>`).join('')}</select></label>
 <button class="btn s r" id="odel" style="flex:0 0 auto">Apagar entregues agora</button></div></div>
-<button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar dados da loja</button>`;
+<button class="btn o w" id="es" style="margin-top:14px">⚙️ Editar perfil e redes sociais</button>`;
  $('#ov').onclick=()=>openOrder(s,$('#oc').value);$('#oc').onkeydown=e=>{if(e.key==='Enter')openOrder(s,$('#oc').value)};$('#qr').onclick=()=>scanQR(c=>openOrder(s,c));
  notifBox(s);loadOrders(s);
  $('#ret').onchange=async e=>{const v=+e.target.value;const er=(await sb.from('stores').update({order_retention_days:v}).eq('id',s.id)).error;if(er)return toast(er.message);s.order_retention_days=v;toast(v?'Pedidos entregues serão apagados após '+v+' dias':'Pedidos ficam guardados')};
@@ -388,7 +388,7 @@ function storeForm(s){
  const oldDelivery=s.delivery!==false,oldPickup=s.pickup!==false;
  const mode=!oldDelivery&&!oldPickup?'booking':oldDelivery&&oldPickup?'both':oldDelivery?'delivery':'pickup';
  let logo=null,cover=null;history.replaceState({},'','/painel');
- app.innerHTML=`<h1>${n?'Vamos criar a sua loja':'Dados da loja'}</h1><div class="card">
+ app.innerHTML=`<h1>${n?'Vamos criar a sua loja':'Perfil da loja'}</h1><p class="small muted">Podes adicionar ou actualizar as redes sociais agora ou voltar a esta página pelo painel da tua loja.</p><div class="card">
  <label>Nome do negócio</label><input id="n" value="${esc(s.name)}" placeholder="Ex.: Barbearia do Paulo">
  <label>Link da loja</label><div class="row" style="flex-wrap:nowrap;gap:4px"><span class="muted small" style="flex:0 0 auto">fumacraft.pages.dev/</span><input id="sl" value="${esc(s.slug)}" placeholder="barbearia-do-paulo"></div>
  <label>WhatsApp (com código do país)</label><input id="w" value="${esc(s.whatsapp)}" inputmode="tel" placeholder="Ex.: 258 84 123 4567">
@@ -444,28 +444,72 @@ function productForm(s,p){const n=!p;p=p||{name:'',price:'',description:'',categ
 
 
 /* ===== ADMIN ===== */
-async function admin(){if(!me)return go('/entrar');app.innerHTML='<div class="spin"></div>';
- const r=await sb.rpc('admin_stores');if(r.error){app.innerHTML='<div class="card" style="text-align:center;margin-top:30px"><h2>Acesso restrito</h2><p class="muted">Esta área é só para o administrador.</p></div>';return}
- const st=r.data||[],u=(await sb.rpc('admin_users_count')).data||0;
- const k=(t,v,c='')=>`<div class="card" style="text-align:center"><div class="muted small">${t}</div><div style="font-size:28px;font-weight:900;${c}">${v}</div></div>`;
- const draw=(q='',f='all')=>{const list=st.filter(s=>(s.name+s.slug+s.email+s.whatsapp).toLowerCase().includes(q.toLowerCase()));
- app.innerHTML=`<h1 style="margin:6px 0">Painel Admin</h1><div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">
-${k('Modo de lançamento','100% grátis','color:var(--g)')}${k('Lojas',st.length)}${k('Contas',u)}</div>
-<div class="row" style="margin:16px 0 8px"><input id="aq" placeholder="🔎 Procurar loja, email, WhatsApp" value="${esc(q)}"><select id="af" style="flex:0 0 160px"><option value="all">Todas as lojas</option></select></div>
-${list.map(s=>{const d=daysLeft(s);return `<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(s.name)}</b> <span class="badge on">Loja ativa · grátis</span><br>
-<span class="small muted">${esc(s.email)} · ${s.products} produtos · ${s.currency} · desde ${new Date(s.created_at).toLocaleDateString('pt-PT')}</span></div></div>
-<div class="row" style="margin-top:10px"><a class="btn s o" href="/${esc(s.slug)}" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">WhatsApp</a>
-</div>
-<details style="margin-top:8px"><summary class="small muted" style="cursor:pointer">🗑️ Eliminar…</summary><div class="row" style="margin-top:8px">
-<button class="btn s o" data-dx="orders30" data-id="${s.id}">Pedidos +30 dias</button><button class="btn s o" data-dx="ordersall" data-id="${s.id}">Todos os pedidos</button>
-<button class="btn s r" data-dx="store" data-id="${s.id}" data-n="${esc(s.name)}">Eliminar loja</button><button class="btn s r" data-dx="user" data-id="${s.id}" data-n="${esc(s.email)}">Eliminar conta</button></div></details></div>`}).join('')||'<p class="muted">Nenhuma loja.</p>'}`;
- const aq=$('#aq');aq.oninput=()=>{const pos=aq.selectionStart;draw(aq.value,$('#af').value);const n=$('#aq');n.focus();n.setSelectionRange(pos,pos)};$('#af').onchange=()=>draw($('#aq').value,$('#af').value);
- app.querySelectorAll('[data-dx]').forEach(b=>b.onclick=async()=>{const t=b.dataset.dx,id=b.dataset.id,n=b.dataset.n||'';
-  const msg={orders30:'Apagar pedidos com mais de 30 dias desta loja?',ordersall:'Apagar TODOS os pedidos desta loja?',store:'Eliminar a loja "'+n+'", produtos e pedidos?',user:'Eliminar a conta '+n+' e tudo o que tem?'}[t];
-  if(!confirm(msg+' Isto não pode ser desfeito.'))return;if((t==='store'||t==='user')&&prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;
-  const r=t==='store'?await sb.rpc('admin_delete_store',{sid:id}):t==='user'?await sb.rpc('admin_delete_user',{sid:id}):await sb.rpc('admin_delete_orders',{sid:id,older_days:t==='orders30'?30:0});
-  if(r.error){b.disabled=false;return toast(r.error.message)}toast(t.startsWith('orders')?(r.data||0)+' pedidos apagados':'Eliminado');admin()});};
- draw();}
+async function admin(){
+ if(!me)return go('/entrar?modo=entrar');
+ app.innerHTML='<div class="spin"></div>';
+ const rs=await Promise.all([
+  sb.rpc('admin_my_permissions'),sb.rpc('admin_stores'),sb.rpc('admin_users_count'),
+  sb.rpc('admin_list_users'),sb.rpc('admin_list_orders'),sb.rpc('admin_list_admin_members')
+ ]);
+ const pr=rs[0],sr=rs[1],cr=rs[2],ur=rs[3],or=rs[4],ar=rs[5];
+ if(pr.error||sr.error){app.innerHTML='<div class="card"><h2>Acesso restrito</h2><p class="muted">Esta área está disponível apenas para contas autorizadas.</p><a class="btn o" href="/painel" data-l>Voltar à minha loja</a></div>';return}
+ const perms=pr.data||{},can=k=>perms[k]===true;
+ const stores=sr.data||[],users=ur.error?[]:(ur.data||[]),orders=or.error?[]:(or.data||[]),staff=ar.error?[]:(ar.data||[]);
+ const root=!ar.error;let page='overview',query='';
+ const stamp=v=>v?new Date(v).toLocaleDateString('pt-PT'):'—';
+ const card=(label,value)=>'<div class="card" style="text-align:center"><div class="small muted">'+label+'</div><b style="font-size:28px">'+value+'</b></div>';
+ const navButton=(p,label)=>'<button class="btn s '+(page===p?'':'o')+'" data-page="'+p+'">'+label+'</button>';
+ function render(){
+  let h='<div class="row" style="justify-content:space-between"><h1 style="margin:6px 0">Painel de Administração</h1><span class="badge on">Acesso autorizado</span></div><div class="row" style="gap:7px;margin:12px 0 16px">'+navButton('overview','Visão geral');
+  if(can('stores.view'))h+=navButton('stores','Lojas');
+  if(can('users.view'))h+=navButton('users','Utilizadores');
+  if(can('orders.view'))h+=navButton('orders','Pedidos');
+  if(root)h+=navButton('access','Acessos e permissões');
+  h+='</div>';
+  if(page==='overview'){
+   h+='<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">'+card('Lojas',stores.length)+card('Contas',cr.error?'—':cr.data);
+   if(can('users.view'))h+=card('Utilizadores listados',users.length);
+   if(can('orders.view'))h+=card('Pedidos recentes',orders.length);
+   h+=card('Lançamento','Grátis')+'</div><div class="card" style="margin-top:14px"><h3>Centro de administração</h3><p class="small muted">Acesso separado do painel dos vendedores. As permissões são verificadas no servidor para cada função.</p><div class="row">';
+   if(can('stores.view'))h+='<button class="btn s o" data-page="stores">Gerir lojas</button>';
+   if(can('users.view'))h+='<button class="btn s o" data-page="users">Ver utilizadores</button>';
+   if(can('orders.view'))h+='<button class="btn s o" data-page="orders">Ver pedidos</button>';
+   if(root)h+='<button class="btn s o" data-page="access">Gerir acessos</button>';
+   h+='</div></div>';
+  }else if(page==='stores'&&can('stores.view')){
+   h+='<input id="admSearch" placeholder="Pesquisar loja, vendedor ou WhatsApp" value="'+esc(query)+'"><div style="margin-top:12px">';
+   const list=stores.filter(x=>(x.name+' '+x.slug+' '+x.email+' '+x.whatsapp).toLowerCase().includes(query.toLowerCase()));
+   h+=list.map(x=>'<div class="card" style="margin-bottom:10px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.name)+'</b><br><span class="small muted">'+esc(x.email)+' · '+x.products+' produtos · '+esc(x.currency)+'</span><br><span class="small muted">Criada em '+stamp(x.created_at)+'</span></div><span class="badge on">'+esc(x.plan||'activa')+'</span></div><div class="row" style="margin-top:10px"><a class="btn s o" href="/'+esc(x.slug)+'" data-l>Ver loja</a><a class="btn s o" href="https://wa.me/'+esc(x.whatsapp)+'" target="_blank" rel="noopener">WhatsApp</a>'+(can('stores.manage')?'<button class="btn s r" data-del-store="'+x.id+'" data-name="'+esc(x.name)+'">Eliminar loja</button>':'')+'</div>'+(can('orders.manage')?'<details><summary>Limpeza de pedidos</summary><div class="row" style="margin-top:8px"><button class="btn s o" data-purge="30" data-id="'+x.id+'">Apagar +30 dias</button><button class="btn s r" data-purge="0" data-id="'+x.id+'">Apagar todos</button></div></details>':'')+'</div>').join('')||'<p class="muted">Nenhuma loja encontrada.</p>';
+   h+='</div>';
+  }else if(page==='users'&&can('users.view')){
+   h+='<input id="admSearch" placeholder="Pesquisar por email" value="'+esc(query)+'"><div style="margin-top:12px">';
+   const list=users.filter(x=>(x.email||'').toLowerCase().includes(query.toLowerCase()));
+   h+=list.map(x=>'<div class="card" style="margin-bottom:9px"><b>'+esc(x.email||'Conta sem email')+'</b><div class="small muted">Registo: '+stamp(x.created_at)+' · Último acesso: '+stamp(x.last_sign_in_at)+' · Lojas: '+x.stores_count+'</div>'+(root?'<button class="btn s r" style="margin-top:8px" data-del-user="'+x.id+'" data-email="'+esc(x.email||'')+'">Eliminar conta</button>':'')+'</div>').join('')||'<p class="muted">Nenhum utilizador encontrado.</p>';
+   h+='</div>';
+  }else if(page==='orders'&&can('orders.view')){
+   h+='<input id="admSearch" placeholder="Pesquisar loja, código ou cliente" value="'+esc(query)+'"><div style="margin-top:12px">';
+   const list=orders.filter(x=>(x.store_name+' '+x.store_slug+' '+x.code+' '+x.customer+' '+x.status).toLowerCase().includes(query.toLowerCase()));
+   h+=list.map(x=>'<div class="card" style="margin-bottom:9px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.store_name)+'</b><div class="small muted">Pedido '+esc(x.code)+' · '+esc(x.customer||'Cliente')+' · '+stamp(x.created_at)+'</div></div><b>'+fmt(x.total,x.currency||'USD')+'</b></div><div class="row" style="margin-top:8px"><span class="badge">'+esc(x.status)+'</span>'+(can('orders.manage')?'<select data-order="'+x.id+'"><option value="novo" '+(x.status==='novo'?'selected':'')+'>Novo</option><option value="pronto" '+(x.status==='pronto'?'selected':'')+'>Pronto</option><option value="entregue" '+(x.status==='entregue'?'selected':'')+'>Entregue</option></select>':'')+'</div></div>').join('')||'<p class="muted">Nenhum pedido encontrado.</p>';
+   h+='</div>';
+  }else if(page==='access'&&root){
+   const keys=[['dashboard.view','Ver painel'],['stores.view','Ver lojas'],['stores.manage','Gerir lojas'],['users.view','Ver utilizadores'],['orders.view','Ver pedidos'],['orders.manage','Gerir pedidos'],['products.manage','Gerir produtos'],['billing.view','Ver pagamentos'],['billing.manage','Gerir pagamentos']];
+   h+='<div class="card"><h3>Adicionar membro da equipa</h3><label>Email da conta já registada</label><input id="staffEmail" type="email" placeholder="pessoa@email.com"><label>Função</label><select id="staffRole"><option value="admin">Administrador</option><option value="support">Suporte</option><option value="moderator">Moderador</option><option value="finance">Financeiro</option></select><p class="small muted">Marca apenas as permissões que esta pessoa deve receber.</p><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr))">';
+   h+=keys.map(x=>'<label style="display:flex;gap:8px;align-items:center;font-weight:500"><input type="checkbox" class="staffPerm" value="'+x[0]+'" style="width:18px;height:18px">'+x[1]+'</label>').join('');
+   h+='</div><button class="btn w" id="saveStaff" style="margin-top:14px">Guardar permissões</button></div><h3>Equipa com acesso</h3>';
+   h+=staff.map(x=>'<div class="card" style="margin-bottom:9px"><div class="row" style="justify-content:space-between"><div><b>'+esc(x.email)+'</b><div class="small muted">Função: '+esc(x.role)+'</div><div class="small muted">Permissões especiais: '+Object.entries(x.permissions||{}).filter(y=>y[1]===true).map(y=>y[0]).join(', ')+'</div></div><button class="btn s r" data-remove-staff="'+esc(x.email)+'">Remover acesso</button></div></div>').join('')||'<p class="muted">Ainda não há membros adicionais na equipa.</p>';
+  }
+  app.innerHTML=h;
+  app.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;query='';render()});
+  const inp=$('#admSearch');if(inp)inp.oninput=()=>{query=inp.value;const pos=inp.selectionStart;render();const ni=$('#admSearch');ni.focus();ni.setSelectionRange(pos,pos)};
+  app.querySelectorAll('[data-del-store]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar a loja '+b.dataset.name+' e os produtos/pedidos associados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_store',{sid:b.dataset.delStore});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Loja eliminada');admin()});
+  app.querySelectorAll('[data-del-user]').forEach(b=>b.onclick=async()=>{if(!confirm('Eliminar definitivamente a conta '+b.dataset.email+' e os respectivos dados?'))return;if(prompt('Escreva ELIMINAR para confirmar')!=='ELIMINAR')return;b.disabled=true;const r=await sb.rpc('admin_delete_user_by_id',{p_user_id:b.dataset.delUser});if(r.error){b.disabled=false;return toast(r.error.message)}toast('Conta eliminada');admin()});
+  app.querySelectorAll('[data-purge]').forEach(b=>b.onclick=async()=>{const days=Number(b.dataset.purge);if(!confirm(days?'Apagar pedidos com mais de 30 dias?':'Apagar todos os pedidos desta loja?'))return;b.disabled=true;const r=await sb.rpc('admin_delete_orders',{sid:b.dataset.id,older_days:days});if(r.error){b.disabled=false;return toast(r.error.message)}toast((r.data||0)+' pedidos apagados');admin()});
+  app.querySelectorAll('[data-order]').forEach(el=>el.onchange=async()=>{const r=await sb.rpc('admin_update_order_status',{p_order_id:el.dataset.order,p_status:el.value});if(r.error){toast(r.error.message);admin();return}toast('Estado do pedido actualizado')});
+  const save=$('#saveStaff');if(save)save.onclick=async()=>{const email=$('#staffEmail').value.trim(),role=$('#staffRole').value,permissions={};if(!email)return toast('Indica o email da conta');app.querySelectorAll('.staffPerm').forEach(x=>permissions[x.value]=x.checked);save.disabled=true;const r=await sb.rpc('admin_save_admin_member',{p_email:email,p_role:role,p_permissions:permissions});if(r.error){save.disabled=false;return toast(r.error.message)}toast('Permissões guardadas');admin()};
+  app.querySelectorAll('[data-remove-staff]').forEach(b=>b.onclick=async()=>{if(!confirm('Remover o acesso administrativo de '+b.dataset.removeStaff+'?'))return;const r=await sb.rpc('admin_remove_admin_member',{p_email:b.dataset.removeStaff});if(r.error)return toast(r.error.message);toast('Acesso removido');admin()});
+ }
+ render();
+}
 
 /* ===== STOREFRONT ===== */
 const DEMO={id:'demo',slug:'exemplo',name:'Mercearia da Ana',whatsapp:'5511999999999',currency:'BRL',description:'Frutas, legumes e mercearia com entrega no mesmo dia.',logo_url:'',cover_url:'',delivery:true,pickup:true,delivery_fee:8,plan:'active',
