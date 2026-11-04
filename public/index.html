@@ -322,8 +322,8 @@ function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 function auth(mode='up'){
  if(me)return go('/painel');
  let legacy=false;
- const passwordOk=p=>/^(?=(?:.*\\d){6}$)(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
- const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);if(/^\\d{8,15}$/.test(p))p='+'+p;return p};
+ const passwordOk=p=>/^(?=(?:.*\d){6}$)(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
+ const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);if(/^\d{8,15}$/.test(p))p='+'+p;return p};
  function render(){
   const signup=mode==='up', oldLogin=!signup&&legacy;
   app.innerHTML='<div class="card" style="max-width:460px;margin:10px auto">'+
@@ -352,7 +352,7 @@ function auth(mode='up'){
      result=await sb.auth.signInWithPassword({email,password});
     }else{
      const phone=normalizePhone($('#ph').value);
-     if(!/^\\+[1-9]\\d{7,14}$/.test(phone)){toast('Introduza o telefone com indicativo internacional, por exemplo +258…');return}
+     if(!/^\+[1-9]\d{7,14}$/.test(phone)){toast('Introduza o telefone com indicativo internacional, por exemplo +258…');return}
      if(signup){
       const name=$('#nm').value.trim();if(name.length<2){toast('Introduza o seu nome completo.');return}
       result=await sb.auth.signUp({phone,password,options:{data:{full_name:name,name}}});
@@ -375,7 +375,7 @@ function auth(mode='up'){
  }
  async function showPhoneConfirmation(phone){
   app.innerHTML='<div class="card" style="max-width:440px;margin:24px auto;text-align:center"><div style="font-size:40px">📱</div><h2>Confirme o seu telefone</h2><p class="muted">Introduza o código enviado por SMS para <b>'+esc(phone)+'</b>.</p><label style="text-align:left">Código de confirmação</label><input id="phoneCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="Código SMS"><button class="btn w" id="verifyPhone" style="margin-top:12px">Confirmar telefone</button><button class="btn o w" id="resendPhone" style="margin-top:8px">Reenviar código</button><button class="btn o w" id="backAuth" style="margin-top:8px">Voltar</button></div>';
-  $('#verifyPhone').onclick=async()=>{const token=$('#phoneCode').value.trim();if(!/^\\d{4,8}$/.test(token))return toast('Introduza o código recebido por SMS.');const b=$('#verifyPhone');b.disabled=true;try{const r=await sb.auth.verifyOtp({phone,token,type:'sms'});if(r.error)return toast(r.error.message);me=r.data.session?.user||r.data.user;go('/painel')}catch(e){toast(e.message||'Não foi possível confirmar o telefone.')}finally{b.disabled=false}};
+  $('#verifyPhone').onclick=async()=>{const token=$('#phoneCode').value.trim();if(!/^\d{4,8}$/.test(token))return toast('Introduza o código recebido por SMS.');const b=$('#verifyPhone');b.disabled=true;try{const r=await sb.auth.verifyOtp({phone,token,type:'sms'});if(r.error)return toast(r.error.message);me=r.data.session?.user||r.data.user;go('/painel')}catch(e){toast(e.message||'Não foi possível confirmar o telefone.')}finally{b.disabled=false}};
   $('#resendPhone').onclick=async()=>{const b=$('#resendPhone');b.disabled=true;try{const r=await sb.auth.resend({type:'sms',phone});if(r.error)toast(r.error.message);else toast('Código reenviado.')}catch(e){toast(e.message||'Não foi possível reenviar.')}finally{b.disabled=false}};
   $('#backAuth').onclick=()=>auth('in');
  }
