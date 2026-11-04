@@ -322,8 +322,8 @@ function pricing(){app.innerHTML=`<h1>Preços</h1>${planCard()}`}
 function auth(mode='up'){
  if(me)return go('/painel');
  let legacy=false;
- const passwordOk=p=>/^(?=(?:.*\d){6}$)(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
- const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);if(/^\d{8,15}$/.test(p))p='+'+p;return p};
+ const passwordOk=p=>/^(?=(?:.*\d){6})(?=.*[A-Z])[A-Za-z0-9]{7}$/.test(p);
+ const normalizePhone=value=>{let p=String(value||'').trim().replace(/[\s().-]/g,'');if(p.startsWith('00'))p='+'+p.slice(2);return p};
  function render(){
   const signup=mode==='up', oldLogin=!signup&&legacy;
   app.innerHTML='<div class="card" style="max-width:460px;margin:10px auto">'+
