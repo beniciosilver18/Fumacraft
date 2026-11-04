@@ -384,7 +384,7 @@ ${ps.map(p=>`<div class="li"><div class="row" style="flex-wrap:nowrap;gap:12px">
  app.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>productForm(s,ps.find(p=>p.id===b.dataset.e)));}
 
 function storeForm(s){
- const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'MZN',description:'',logo_url:'',cover_url:'',delivery:true,pickup:true,delivery_fee:0};
+ const n=!s;s=s||{name:'',slug:'',whatsapp:'',currency:'MZN',description:'',logo_url:'',cover_url:'',social_links:{},delivery:true,pickup:true,delivery_fee:0};
  const oldDelivery=s.delivery!==false,oldPickup=s.pickup!==false;
  const mode=!oldDelivery&&!oldPickup?'booking':oldDelivery&&oldPickup?'both':oldDelivery?'delivery':'pickup';
  let logo=null,cover=null;history.replaceState({},'','/painel');
@@ -394,6 +394,12 @@ function storeForm(s){
  <label>WhatsApp (com código do país)</label><input id="w" value="${esc(s.whatsapp)}" inputmode="tel" placeholder="Ex.: 258 84 123 4567">
  <div class="row"><div><label>Moeda</label><select id="c">${Object.keys(CUR).map(k=>`<option ${k===s.currency?'selected':''}>${k}</option>`).join('')}</select></div><div><label>Taxa de entrega</label><input id="fee" type="number" min="0" step="0.01" value="${s.delivery_fee||0}"></div></div>
  <label>Descrição</label><textarea id="d" rows="2" placeholder="O que vende ou serviço que presta, horário e zona de atendimento">${esc(s.description)}</textarea>
+ <h3 style="margin:18px 0 4px">🌐 Redes sociais e comunidade</h3><p class="small muted">Todos os links são opcionais. Adicione os perfis oficiais da sua loja e, se tiver, o link do grupo.</p>
+ <label>Instagram · Link do perfil</label><input id="ig" type="url" value="${esc(s.social_links?.instagram||'')}" placeholder="https://instagram.com/sualoja">
+ <label>Facebook · Link da página/perfil</label><input id="fb" type="url" value="${esc(s.social_links?.facebook||'')}" placeholder="https://facebook.com/sualoja">
+ <label>TikTok · Link do perfil</label><input id="tt" type="url" value="${esc(s.social_links?.tiktok||'')}" placeholder="https://tiktok.com/@sualoja">
+ <label>Telegram · Link do perfil/canal</label><input id="tg" type="url" value="${esc(s.social_links?.telegram||'')}" placeholder="https://t.me/sualoja">
+ <label>Grupo da loja · Link de convite</label><input id="grp" type="url" value="${esc(s.social_links?.group||'')}" placeholder="https://chat.whatsapp.com/... ou https://t.me/...">
  ${picker('lg','Logo',s.logo_url,false,'🏪')}${picker('cv','Foto de capa',s.cover_url,true,'🖼️')}
  <label>Como atende os clientes?</label><select id="mode">
   <option value="both" ${mode==='both'?'selected':''}>Entrega e levantamento</option>
@@ -407,8 +413,9 @@ function storeForm(s){
  bindPicker('lg',f=>logo=f);bindPicker('cv',f=>cover=f);
  $('#sv').onclick=async()=>{const b=$('#sv'),m=$('#mode').value;
   const o={name:$('#n').value.trim(),slug:slugify($('#sl').value||$('#n').value),whatsapp:$('#w').value.replace(/\D/g,''),currency:$('#c').value,
-   delivery_fee:Math.max(0,+$('#fee').value||0),description:$('#d').value.trim(),delivery:m==='both'||m==='delivery',pickup:m==='both'||m==='pickup'};
+   delivery_fee:Math.max(0,+$('#fee').value||0),description:$('#d').value.trim(),social_links:{instagram:$('#ig').value.trim(),facebook:$('#fb').value.trim(),tiktok:$('#tt').value.trim(),telegram:$('#tg').value.trim(),group:$('#grp').value.trim()},delivery:m==='both'||m==='delivery',pickup:m==='both'||m==='pickup'};
   if(!o.name)return toast('Escreva o nome do negócio');
+  for(const [label,value] of Object.entries({Instagram:o.social_links.instagram,Facebook:o.social_links.facebook,TikTok:o.social_links.tiktok,Telegram:o.social_links.telegram,'Grupo da loja':o.social_links.group})){if(value){try{const u=new URL(value);if(!['http:','https:'].includes(u.protocol))throw 0;o.social_links[label==='Instagram'?'instagram':label==='Facebook'?'facebook':label==='TikTok'?'tiktok':label==='Telegram'?'telegram':'group']=u.href}catch{return toast('Link inválido em '+label+'. Use um endereço https:// válido.')}}}
   if(o.slug.length<3||RESERVED.includes(o.slug))return toast('Escolha outro link');
   if(o.whatsapp.length<8||o.whatsapp.length>15)return toast('WhatsApp inválido. Inclua o código do país.');
   if(m==='booking')o.delivery=false,o.pickup=false;
@@ -489,6 +496,7 @@ function storefront(s,demo){document.title=s.name+' · Fumacraft';document.query
 <div class="cover" style="${s.cover_url?`background-image:url('${esc(s.cover_url)}')`:''}"></div>
 <div class="shead">${s.logo_url?`<img class="slogo" src="${esc(s.logo_url)}" alt="">`:`<div class="slogo ph">${esc((s.name||'?').trim()[0].toUpperCase())}</div>`}<div style="padding-bottom:4px"><h1 style="margin:0;font-size:24px">${esc(s.name)}</h1></div></div>
 ${s.description?`<p class="muted" style="margin:0 4px 12px">${esc(s.description)}</p>`:''}
+${(()=>{const links=[['instagram','Instagram','◎'],['facebook','Facebook','f'],['tiktok','TikTok','♪'],['telegram','Telegram','➤'],['group','Grupo da loja','👥']].filter(([k])=>s.social_links?.[k]);return links.length?`<div class="row" style="gap:8px;flex-wrap:wrap;margin:0 4px 14px">${links.map(([k,label,icon])=>`<a class="btn s o" href="${esc(s.social_links[k])}" target="_blank" rel="noopener noreferrer">${icon} ${label}</a>`).join('')}</div>`:''})()}
 <div class="row" style="margin-bottom:12px;flex-wrap:nowrap"><input id="q" placeholder="🔎 Procurar produto…" value="${esc(q)}"><a class="btn s o" style="flex:0 0 auto" href="https://wa.me/${esc(s.whatsapp)}" target="_blank" rel="noopener">💬 Contacto</a></div>
 ${cats.length>1?`<div class="chips"><button class="chip ${cat?'':'on'}" data-c="">Tudo</button>${cats.map(c=>`<button class="chip ${c===cat?'on':''}" data-c="${esc(c)}">${esc(c)}</button>`).join('')}</div>`:''}
 <div class="grid p">${s.products.filter(p=>(!cat||p.category===cat)&&p.name.toLowerCase().includes(q)).map(p=>`<div class="card prod" data-o="${p.id}">${ph(p)}<h3>${esc(p.name)}</h3><div class="price">${fmt(p.price,s.currency)}</div>
