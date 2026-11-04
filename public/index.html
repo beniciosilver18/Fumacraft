@@ -193,7 +193,7 @@ function picker(id,label,url,wide,emoji='📷'){return `<label>${label}</label><
 function bindPicker(id,onfile){const i=$('#'+id);if(!i)return;i.onchange=()=>{const f=i.files[0];if(!f)return;const pv=$('#'+id+'_pv');const u=URL.createObjectURL(f);
  if(pv.tagName==='IMG')pv.src=u;else{const im=document.createElement('img');im.className='pv';im.id=id+'_pv';im.src=u;pv.replaceWith(im)}onfile(f);const st=document.getElementById(id+'_st');if(st)st.textContent='✓ Foto escolhida, carregue em Guardar'}}
 let me=null;sb.auth.getSession().then(r=>{me=r.data.session?.user||null;route()});
-sb.auth.onAuthStateChange((_e,s)=>{me=s?.user||null});
+sb.auth.onAuthStateChange((_e,s)=>{me=s?.user||null;const b=$('#hb');if(b){b.href=me?'/painel':'/entrar?modo=entrar';b.textContent=me?'Minha loja':'Entrar na minha loja'}});
 
 /* ===== ROUTER ===== */
 function route(){document.querySelector('.logo').lastChild.textContent='Fumacraft';const p=decodeURIComponent(location.pathname.replace(/^\/+|\/+$/g,''));window.scrollTo(0,0);
