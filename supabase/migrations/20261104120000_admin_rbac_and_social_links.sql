@@ -326,3 +326,95 @@ grant execute on function public.admin_delete_orders(uuid,int) to authenticated;
 grant execute on function public.admin_delete_user(uuid) to authenticated;
 grant execute on function public.admin_add_days(uuid,int) to authenticated;
 grant execute on function public.admin_set_plan(uuid,text) to authenticated;
+
+
+-- Additional moderation controls: temporarily hide a public storefront without deleting it.
+alter table public.stores
+  add column if not exists is_public boolean not null default true;
+
+drop function if exists public.admin_stores();
+create function public.admin_stores()
+returns table(
+  id uuid, slug text, name text, whatsapp text, currency text, plan text,
+  trial_started timestamptz, paid_until timestamptz, created_at timestamptz,
+  is_public boolean, email text, products bigint
+)
+language plpgsql security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if not public.admin_has_permission('stores.view') then raise exception 'forbidden'; end if;
+  return query
+  select s.id,s.slug,s.name,s.whatsapp,s.currency,s.plan,s.trial_started,s.paid_until,
+         s.created_at,s.is_public,u.email::text,
+         (select count(*) from public.products p where p.store_id=s.id)
+  from public.stores s
+  join auth.users u on u.id=s.owner
+  order by s.created_at desc;
+end;
+$$;
+
+create or replace function public.admin_set_store_visibility(p_store_id uuid, p_is_public boolean)
+returns void
+language plpgsql security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if not public.admin_has_permission('stores.manage') then raise exception 'forbidden'; end if;
+  update public.stores set is_public=p_is_public where id=p_store_id;
+  if not found then raise exception 'store not found'; end if;
+end;
+$$;
+
+create or replace function public.admin_list_products()
+returns table(
+  id uuid, store_id uuid, store_name text, store_slug text,
+  name text, price numeric, currency text, active boolean, created_at timestamptz
+)
+language plpgsql security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if not public.admin_has_permission('products.manage') then raise exception 'forbidden'; end if;
+  return query
+  select p.id,p.store_id,s.name::text,s.slug::text,p.name::text,p.price,
+         s.currency::text,p.active,p.created_at
+  from public.products p
+  join public.stores s on s.id=p.store_id
+  order by p.created_at desc
+  limit 500;
+end;
+$$;
+
+create or replace function public.admin_update_product_visibility(p_product_id uuid, p_active boolean)
+returns void
+language plpgsql security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if not public.admin_has_permission('products.manage') then raise exception 'forbidden'; end if;
+  update public.products set active=p_active where id=p_product_id;
+  if not found then raise exception 'product not found'; end if;
+end;
+$$;
+
+create or replace function public.admin_delete_product(p_product_id uuid)
+returns void
+language plpgsql security definer
+set search_path = pg_catalog, public, auth
+as $$
+begin
+  if not public.admin_has_permission('products.manage') then raise exception 'forbidden'; end if;
+  delete from public.products where id=p_product_id;
+  if not found then raise exception 'product not found'; end if;
+end;
+$$;
+
+revoke all on function public.admin_set_store_visibility(uuid,boolean) from public, anon;
+revoke all on function public.admin_list_products() from public, anon;
+revoke all on function public.admin_update_product_visibility(uuid,boolean) from public, anon;
+revoke all on function public.admin_delete_product(uuid) from public, anon;
+grant execute on function public.admin_set_store_visibility(uuid,boolean) to authenticated;
+grant execute on function public.admin_list_products() to authenticated;
+grant execute on function public.admin_update_product_visibility(uuid,boolean) to authenticated;
+grant execute on function public.admin_delete_product(uuid) to authenticated;
