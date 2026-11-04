@@ -1,4 +1,4 @@
-const CACHE_VERSION='fumacraft-v11';
+const CACHE_VERSION='fumacraft-v12';
 const CORE_ASSETS=['/','/icon.svg','/icon-192.png','/manifest.json'];
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{
