@@ -668,7 +668,7 @@ function checkout(s,back,key,demo){
   const g=$('#go');g.disabled=true;g.textContent='A registar…';let code;
   if(demo||s.id==='demo')code=Math.random().toString(36).slice(2,8).toUpperCase();
   else{const r=await sb.rpc('create_order',{sid:s.id,its:items.map(p=>({id:p.id,qty:cart[p.id]})),cname:name,cmode:md,caddr:ad,cnote:ob});
-   if(r.error||!r.data?.[0]){g.disabled=false;g.textContent=bookingOnly?'📅 Enviar pedido de marcação':'💬 Enviar pedido pelo WhatsApp';return toast('Não foi possível registar. Verifique a ligação e tente novamente.')}code=r.data[0].code;}
+   if(r.error||!r.data?.[0]){g.disabled=false;g.textContent=bookingOnly?'📅 Enviar pedido de marcação':'💬 Enviar pedido pelo WhatsApp';const why=String(r.error?.message||'');const msg=why.includes('not_public')?'Esta loja está temporariamente indisponível.':why.includes('closed')?'A loja não está a aceitar pedidos neste momento.':why.includes('delivery_disabled')?'Esta loja não disponibiliza entrega.':why.includes('pickup_disabled')?'Esta loja não disponibiliza levantamento.':why.includes('booking_only')?'Esta loja recebe pedidos de marcação.':why.includes('invalid_mode')?'Escolha uma forma de pedido válida.':'Não foi possível registar o pedido. Verifique a ligação e tente novamente.';return toast(msg)}code=r.data[0].code;}
   L.splice(1,0,`🔑 *Código: ${code}*`);
   const mine=JSON.parse(localStorage.getItem('fc_orders')||'[]');mine.unshift({code,store:s.name,slug:s.slug,total:fmt(sub+fee,s.currency),at:Date.now()});localStorage.setItem('fc_orders',JSON.stringify(mine.slice(0,20)));
   cart={};localStorage.removeItem(key);const wa='https://wa.me/'+s.whatsapp+'?text='+encodeURIComponent(L.join('\n'));window.scrollTo(0,0);
